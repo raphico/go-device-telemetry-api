@@ -19,7 +19,7 @@ func Migrate(connString string, log *logger.Logger) error {
 		return err
 	}
 
-	defer func () {
+	defer func() {
 		if err := db.Close(); err != nil {
 			log.Error(fmt.Sprintf("failed to close database connection, %v", err))
 		}
