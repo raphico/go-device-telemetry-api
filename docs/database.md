@@ -6,14 +6,14 @@ This document outlines the database structure for the **Device Telemetry API**, 
 
 Stores user accounts and authentication info.
 
-| Column        | Type      | Notes                 |
-| ------------- | --------- | --------------------- |
-| id            | UUID      | Primary Key           |
-| username      | VARCHAR   | Unique                |
-| email         | VARCHAR   | Unique                |
-| password_hash | VARCHAR   | Hashed password       |
-| created_at    | TIMESTAMP | Account creation time |
-| updated_at    | TIMESTAMP | Last update time      |
+| Column        | Type        | Notes                 |
+| ------------- | ----------- | --------------------- |
+| id            | UUID        | Primary Key           |
+| username      | VARCHAR     | Unique                |
+| email         | VARCHAR     | Unique                |
+| password_hash | TEXT        | Hashed password       |
+| created_at    | TIMESTAMPTZ | Account creation time |
+| updated_at    | TIMESTAMPTZ | Last update time      |
 
 **Example:**
 

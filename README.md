@@ -17,6 +17,34 @@ A backend service built with **Go** for managing IoT devices, collecting telemet
 - **Testing** (unit & integration)
 - **CI/CD** pipeline (GitHub Actions)
 
+## Tech Stack
+
+- **Language:** Go (Golang)
+- **Router:** Chi
+- **Database:** PostgreSQL + Goose SQL migrations
+
+## Quick Start
+
+1. Clone the repository
+
+```bash
+git clone git@github.com:raphico/go-device-telemetry-api.git
+cd go-device-telemetry-api
+```
+
+2. Set environmental variables
+
+```bash
+export DATABASE_URL="postgres://telemetry_user:telemetry_pass@localhost:5432/telemetry_db"
+export HTTP_PORT="8080"
+```
+
+3. Run server
+
+```bash
+go run cmd/api/main.go
+```
+
 ## License
 
 Licensed under the MIT License. Check the [LICENSE](./LICENSE) file for details.
