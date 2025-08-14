@@ -10,18 +10,20 @@ import (
 	"github.com/raphico/go-device-telemetry-api/internal/logger"
 )
 
-func NewRouter(logger *logger.Logger) http.Handler {
+func NewRouter(log *logger.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimw.RequestID)
 	r.Use(chimw.RealIP)
 	r.Use(chimw.Recoverer)
-	r.Use(loggingMiddleware(logger))
+	r.Use(loggingMiddleware(log))
 	r.Use(chimw.Timeout(60 * time.Second))
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintln(w, "OK")
+		if _, err := fmt.Fprintln(w, "OK"); err != nil {
+			log.Error(fmt.Sprintf("failed to write response: %v", err))
+		}
 	})
 
 	return r

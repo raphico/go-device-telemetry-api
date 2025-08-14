@@ -22,7 +22,7 @@ func main() {
 
 	defer dbpool.Close()
 
-	err = db.Migrate(cfg.DatabaseURL)
+	err = db.Migrate(cfg.DatabaseURL, log)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
