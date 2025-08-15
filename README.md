@@ -6,6 +6,7 @@ A backend service built with **Go** for managing IoT devices, collecting telemet
 
 - [Project Motivation](./docs/motivation.md)
 - [Database Design](./docs/database.md)
+- [API Documentation](./docs/api.md)
 
 ## Features
 
@@ -21,7 +22,7 @@ A backend service built with **Go** for managing IoT devices, collecting telemet
 
 - **Language:** Go (Golang)
 - **Router:** Chi
-- **Database:** PostgreSQL + Goose SQL migrations
+- **Database:** PostgreSQL + pgx + Goose SQL migrations
 
 ## Quick Start
 

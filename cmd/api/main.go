@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/raphico/go-device-telemetry-api/internal/app"
 	"github.com/raphico/go-device-telemetry-api/internal/config"
 	"github.com/raphico/go-device-telemetry-api/internal/db"
 	"github.com/raphico/go-device-telemetry-api/internal/logger"
-	transporthttp "github.com/raphico/go-device-telemetry-api/internal/transport/http"
 )
 
 func main() {
@@ -27,7 +27,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	router := transporthttp.NewRouter(log)
+	router := app.BuildApp(log, dbpool)
 
 	server := &http.Server{
 		Addr:         cfg.HTTPAddr,
