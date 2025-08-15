@@ -45,18 +45,18 @@ func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, user.ErrInvalidEmail):
-			WriteJSONError(w, http.StatusBadRequest, "invalid_email", err.Error())
+			WriteJSONError(w, http.StatusBadRequest, "invalid_email", err.Error(), h.log)
 		case errors.Is(err, user.ErrInvalidUsername):
-			WriteJSONError(w, http.StatusBadRequest, "invalid_username", err.Error())
+			WriteJSONError(w, http.StatusBadRequest, "invalid_username", err.Error(), h.log)
 		case errors.Is(err, user.ErrInvalidPassword):
-			WriteJSONError(w, http.StatusBadRequest, "invalid_password", err.Error())
+			WriteJSONError(w, http.StatusBadRequest, "invalid_password", err.Error(), h.log)
 		case errors.Is(err, user.ErrEmailAlreadyExists):
-			WriteJSONError(w, http.StatusConflict, "email_exists", err.Error())
+			WriteJSONError(w, http.StatusConflict, "email_exists", err.Error(), h.log)
 		case errors.Is(err, user.ErrUsernameAlreadyExits):
-			WriteJSONError(w, http.StatusConflict, "username_exists", err.Error())
+			WriteJSONError(w, http.StatusConflict, "username_exists", err.Error(), h.log)
 		default:
 			h.log.Error(fmt.Sprintf("failed to register user: %v", err))
-			WriteJSONError(w, http.StatusInternalServerError, "internal_error", "internal server error")
+			WriteJSONError(w, http.StatusInternalServerError, "internal_error", "internal server error", h.log)
 		}
 		return
 	}

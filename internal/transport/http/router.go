@@ -22,7 +22,9 @@ func NewRouter(log *logger.Logger, userHandler *UserHandler) http.Handler {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("OK"))
+			if _, err := w.Write([]byte("OK")); err != nil {
+				log.Error(fmt.Sprintf("failed to write health response: %v", err))
+			}
 		})
 
 		r.Route("/auth", func(r chi.Router) {
