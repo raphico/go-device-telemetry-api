@@ -35,6 +35,8 @@ type registerUserResponse struct {
 }
 
 func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	
 	var req registerUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -43,26 +45,33 @@ func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	u, err := h.service.RegisterUser(r.Context(), req.Username, req.Email, req.Password)
 	if err != nil {
-		switch {
-		case errors.Is(err, user.ErrInvalidEmail):
-			WriteJSONError(w, http.StatusBadRequest, "invalid_email", err.Error(), h.log)
-		case errors.Is(err, user.ErrInvalidUsername):
-			WriteJSONError(w, http.StatusBadRequest, "invalid_username", err.Error(), h.log)
-		case errors.Is(err, user.ErrInvalidPassword):
-			WriteJSONError(w, http.StatusBadRequest, "invalid_password", err.Error(), h.log)
-		case errors.Is(err, user.ErrEmailAlreadyExists):
-			WriteJSONError(w, http.StatusConflict, "email_exists", err.Error(), h.log)
-		case errors.Is(err, user.ErrUsernameAlreadyExits):
-			WriteJSONError(w, http.StatusConflict, "username_exists", err.Error(), h.log)
-		default:
-			h.log.Error(fmt.Sprintf("failed to register user: %v", err))
-			WriteJSONError(w, http.StatusInternalServerError, "internal_error", "internal server error", h.log)
+		errorMap := []struct{
+			Err error
+			HTTP int
+			Code string
+			Message string
+		}{
+			{user.ErrInvalidEmail, http.StatusBadRequest, "invalid_email", "invalid email"},
+			{user.ErrInvalidUsername, http.StatusBadRequest, "invalid_username", "invalid username"},
+			{user.ErrInvalidPassword, http.StatusBadRequest, "invalid_password", "invalid password"},
+			{user.ErrEmailAlreadyExists, http.StatusConflict, "email_exists", "email already exists"},
+			{user.ErrUsernameAlreadyExists, http.StatusConflict, "username_exists", "username already exists"},
 		}
+
+		for _, e := range errorMap {
+			if errors.Is(err, e.Err) {
+				WriteJSONError(w, e.HTTP, e.Code, e.Message, h.log)
+				return;
+			}
+		}
+
+		h.log.Error(fmt.Sprintf("failed to register user: %v", err))
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "internal server error", h.log)
 		return
 	}
 
 	resp := registerUserResponse{
-		ID:       string(u.ID),
+		ID:       u.ID.String(),
 		Username: u.Username.String(),
 		Email:    u.Email.String(),
 	}
@@ -71,5 +80,6 @@ func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		h.log.Error(fmt.Sprintf("failed to encode response: %v", err))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
 }

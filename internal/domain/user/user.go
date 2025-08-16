@@ -8,10 +8,11 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type ID string
+type UserID uuid.UUID
 
 type Email struct {
 	value string
@@ -22,7 +23,7 @@ type Username struct {
 }
 
 type User struct {
-	ID        ID
+	ID        UserID
 	Email     Email
 	Username  Username
 	Password  Password
@@ -56,6 +57,10 @@ func newUser(email, username, password string) (*User, error) {
 		Username: uname,
 		Password: pass,
 	}, nil
+}
+
+func (u UserID) String() string {
+	return uuid.UUID(u).String()
 }
 
 func newEmail(value string) (Email, error) {

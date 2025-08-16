@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -35,18 +36,17 @@ func (r *UserRepository) Create(ctx context.Context, u *user.User) error {
 	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
 
 	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			if pgErr.Code == "23505" {
-				switch pgErr.ConstraintName {
-				case "users_email_key":
-					return user.ErrEmailAlreadyExists
-				case "users_username_key":
-					return user.ErrUsernameAlreadyExits
-				}
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			switch pgErr.ConstraintName {
+			case "users_email_key":
+				return user.ErrEmailAlreadyExists
+			case "users_username_key":
+				return user.ErrUsernameAlreadyExists
 			}
-
-			return fmt.Errorf("failed to insert user: %w", err)
 		}
+
+		return fmt.Errorf("failed to insert user: %w", err)
 	}
 
 	return nil
