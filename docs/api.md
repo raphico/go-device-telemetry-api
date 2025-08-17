@@ -96,4 +96,4 @@ Uses the **refresh token cookie** to issue a new access token.
 
 **Errors**:
 
-- `401 Unauthorized` → invalid_request/invalid_grant
+- `401 Unauthorized` → missing, invalid, or expired refresh token
