@@ -21,7 +21,8 @@ type Token struct {
 	Scope      string
 	Revoked    bool
 	ExpiresAt  time.Time
-	LastUsedAt time.Time
+	LastUsedAt *time.Time
+	CreatedAt  time.Time
 }
 
 func NewToken(userId user.UserID, ttl time.Duration, scope string) (*Token, error) {
@@ -32,7 +33,7 @@ func NewToken(userId user.UserID, ttl time.Duration, scope string) (*Token, erro
 
 	plaintext := base64.RawURLEncoding.EncodeToString(b)
 
-	hash := sha256.Sum256([]byte(plaintext))
+	hash := HashPlaintext(plaintext)
 
 	return &Token{
 		UserID:    userId,
@@ -41,4 +42,9 @@ func NewToken(userId user.UserID, ttl time.Duration, scope string) (*Token, erro
 		Plaintext: plaintext,
 		Scope:     scope,
 	}, nil
+}
+
+func HashPlaintext(plaintext string) []byte {
+	hash := sha256.Sum256([]byte(plaintext))
+	return hash[:]
 }

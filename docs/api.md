@@ -78,3 +78,22 @@ Logs in a user, returns **JWT access_token** in JSON and sets a **refresh_token*
 **Errors**:
 
 - `401 Unauthorized` → invalid credentials
+
+### 3. Refresh Token
+
+`POST /auth/refresh`
+
+Uses the **refresh token cookie** to issue a new access token.
+
+**Response** `200 OK`:
+
+```json
+{
+  "access_token": "<NEW_JWT_TOKEN>",
+  "expires_in": 3600
+}
+```
+
+**Errors**:
+
+- `401 Unauthorized` → invalid_request/invalid_grant

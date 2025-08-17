@@ -64,3 +64,33 @@ func (s *Service) CreateRefreshToken(ctx context.Context, userId user.UserID) (*
 
 	return token, nil
 }
+
+func (s *Service) RotateTokens(ctx context.Context, refreshTok string) (string, *Token, error) {
+	hash := HashPlaintext(refreshTok)
+
+	tokenRecord, err := s.repo.FindValidTokenByHash(ctx, hash, "auth")
+	if err != nil {
+		fmt.Println(err)
+		return "", nil, err
+	}
+
+	if err := s.repo.UpdateLastUsed(ctx, hash); err != nil {
+		return "", nil, err
+	}
+
+	if err := s.repo.Revoke(ctx, "auth", tokenRecord.Hash); err != nil {
+		return "", nil, err
+	}
+
+	accessToken, err := s.GenerateAccessToken(tokenRecord.UserID)
+	if err != nil {
+		return "", nil, err
+	}
+
+	token, err := s.CreateRefreshToken(ctx, tokenRecord.UserID)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return accessToken, token, nil
+}

@@ -93,7 +93,7 @@ type loginUserRequest struct {
 	Password string `json:"password"`
 }
 
-type loginUserResponse struct {
+type tokenResponse struct {
 	AccessToken string `json:"access_token"`
 	ExpiresIn   int    `json:"expires_in"`
 }
@@ -113,13 +113,13 @@ func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	accessToken, err := h.tokenService.GenerateAccessToken(user.ID)
 	if err != nil {
-		WriteJSONError(w, http.StatusInternalServerError, "server_error", "failed to generate access token")
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "failed to generate access token")
 		return
 	}
 
 	refreshToken, err := h.tokenService.CreateRefreshToken(r.Context(), user.ID)
 	if err != nil {
-		WriteJSONError(w, http.StatusInternalServerError, "server_error", "failed to create refresh token")
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "failed to create refresh token")
 		return
 	}
 
@@ -138,7 +138,45 @@ func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, cookie)
 
-	resp := &loginUserResponse{
+	resp := tokenResponse{
+		AccessToken: accessToken,
+		ExpiresIn:   int(h.cfg.AccessTokenTTL.Seconds()),
+	}
+
+	WriteJSON(w, http.StatusOK, resp)
+}
+
+func (h *UserHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("refresh_token")
+	if err != nil {
+		WriteJSONError(w, http.StatusUnauthorized, "invalid_request", "refresh token missing")
+		return
+	}
+
+	refreshTok := cookie.Value
+
+	accessToken, refreshToken, err := h.tokenService.RotateTokens(r.Context(), refreshTok)
+	if err != nil {
+		WriteJSONError(w, http.StatusUnauthorized, "invalid_grant", "invalid or expired refresh token")
+		return
+	}
+
+	cookie = &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken.Plaintext,
+		Path:     "/",
+		HttpOnly: true,
+		Expires:  refreshToken.ExpiresAt,
+		SameSite: http.SameSiteLaxMode,
+	}
+	if h.cfg.Env == "production" {
+		cookie.Secure = true
+	} else {
+		cookie.Secure = false
+	}
+	http.SetCookie(w, cookie)
+
+	resp := tokenResponse{
 		AccessToken: accessToken,
 		ExpiresIn:   int(h.cfg.AccessTokenTTL.Seconds()),
 	}

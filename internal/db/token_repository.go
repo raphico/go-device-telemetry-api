@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/token"
@@ -50,6 +51,74 @@ func (r *TokenRepository) Create(ctx context.Context, t *token.Token) error {
 		}
 
 		return fmt.Errorf("failed to insert token: %w", err)
+	}
+
+	return nil
+}
+
+func (r *TokenRepository) FindValidTokenByHash(ctx context.Context, hash []byte, scope string) (*token.Token, error) {
+	t := &token.Token{}
+	query := `
+		SELECT id, token_hash, user_id, scope, revoked, expires_at, last_used_at, created_at
+		FROM tokens
+		WHERE token_hash = $1 
+			AND scope = $2
+			AND revoked = false 
+			AND expires_at > now()
+	`
+
+	err := r.db.QueryRow(ctx, query, hash, scope).Scan(
+		&t.ID,
+		&t.Hash,
+		&t.UserID,
+		&t.Scope,
+		&t.Revoked,
+		&t.ExpiresAt,
+		&t.LastUsedAt,
+		&t.CreatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, token.ErrTokenNotFound
+		}
+
+		return nil, fmt.Errorf("failed to find token: %w", err)
+	}
+
+	return t, nil
+}
+
+func (r *TokenRepository) Revoke(ctx context.Context, scope string, hash []byte) error {
+	query := `
+		UPDATE tokens
+		SET revoked = true
+		WHERE token_hash = $1
+			AND scope = $2
+			AND revoked = false
+	`
+
+	tag, err := r.db.Exec(ctx, query, hash, scope)
+	if err != nil {
+		return fmt.Errorf("failed to revoke token: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return token.ErrTokenNotFound
+	}
+
+	return nil
+}
+
+func (r *TokenRepository) UpdateLastUsed(ctx context.Context, hash []byte) error {
+	query := `UPDATE tokens SET last_used_at = now() WHERE token_hash = $1 AND revoked = false`
+	tag, err := r.db.Exec(ctx, query, hash)
+	if err != nil {
+		return fmt.Errorf("failed to revoke token: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return token.ErrTokenNotFound
 	}
 
 	return nil
