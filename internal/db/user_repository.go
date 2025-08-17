@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
@@ -50,4 +53,58 @@ func (r *UserRepository) Create(ctx context.Context, u *user.User) error {
 	}
 
 	return nil
+}
+
+func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*user.User, error) {
+	var (
+		id                   uuid.UUID
+		emailStr             string
+		usernameStr          string
+		passwordHash         []byte
+		createdAt, updatedAt time.Time
+	)
+
+	query := `
+		SELECT id, email, username, password_hash, created_at, updated_at 
+		FROM users
+		WHERE users.email = $1
+	`
+
+	err := r.db.QueryRow(ctx, query, email).Scan(
+		&id,
+		&emailStr,
+		&usernameStr,
+		&passwordHash,
+		&createdAt,
+		&updatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, user.ErrUserNotFound
+		}
+
+		return nil, fmt.Errorf("failed to find user: %w", err)
+	}
+
+	u := &user.User{}
+
+	u.ID = user.UserID(id)
+	u.Password = user.PasswordFromHash(passwordHash)
+	u.CreatedAt = createdAt
+	u.UpdatedAt = updatedAt
+
+	e, err := user.NewEmail(emailStr)
+	if err != nil {
+		return nil, fmt.Errorf("corrupt user data: %w", err)
+	}
+	u.Email = e
+
+	uname, err := user.NewUsername(usernameStr)
+	if err != nil {
+		return nil, fmt.Errorf("corrupt user data: %w", err)
+	}
+	u.Username = uname
+
+	return u, nil
 }

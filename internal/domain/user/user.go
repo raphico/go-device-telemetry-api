@@ -32,17 +32,16 @@ type User struct {
 }
 
 type Password struct {
-	value string
-	hash  []byte
+	hash []byte
 }
 
 func newUser(email, username, password string) (*User, error) {
-	addr, err := newEmail(email)
+	addr, err := NewEmail(email)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	uname, err := newUsername(username)
+	uname, err := NewUsername(username)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
@@ -59,11 +58,20 @@ func newUser(email, username, password string) (*User, error) {
 	}, nil
 }
 
+func NewUserID(id string) (UserID, error) {
+	parsed, err := uuid.Parse(id)
+	if err != nil {
+		return UserID(uuid.Nil), nil
+	}
+
+	return UserID(parsed), nil
+}
+
 func (u UserID) String() string {
 	return uuid.UUID(u).String()
 }
 
-func newEmail(value string) (Email, error) {
+func NewEmail(value string) (Email, error) {
 	value = strings.TrimSpace(value)
 
 	if _, err := mail.ParseAddress(value); err != nil {
@@ -77,7 +85,7 @@ func (e Email) String() string {
 	return e.value
 }
 
-func newUsername(value string) (Username, error) {
+func NewUsername(value string) (Username, error) {
 	value = strings.TrimSpace(value)
 
 	if len(value) < 3 || len(value) > 30 {
@@ -106,15 +114,19 @@ func newPassword(value string) (Password, error) {
 		return Password{}, fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	return Password{value: value, hash: hash}, nil
+	return Password{hash: hash}, nil
+}
+
+func PasswordFromHash(hash []byte) Password {
+	return Password{hash: hash}
 }
 
 func (p Password) Hash() string {
 	return string(p.hash)
 }
 
-func (p *Password) IsEqual(hash, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+func (p *Password) Matches(candidate string) bool {
+	err := bcrypt.CompareHashAndPassword(p.hash, []byte(candidate))
 	return err == nil
 }
 

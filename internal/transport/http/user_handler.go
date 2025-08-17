@@ -6,19 +6,30 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/raphico/go-device-telemetry-api/internal/config"
+	"github.com/raphico/go-device-telemetry-api/internal/domain/token"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
 	"github.com/raphico/go-device-telemetry-api/internal/logger"
 )
 
 type UserHandler struct {
-	log     *logger.Logger
-	service *user.Service
+	log          *logger.Logger
+	cfg          config.Config
+	userService  *user.Service
+	tokenService *token.Service
 }
 
-func NewUserHandler(log *logger.Logger, service *user.Service) *UserHandler {
+func NewUserHandler(
+	log *logger.Logger,
+	cfg config.Config,
+	userService *user.Service,
+	tokenService *token.Service,
+) *UserHandler {
 	return &UserHandler{
-		log:     log,
-		service: service,
+		log:          log,
+		cfg:          cfg,
+		userService:  userService,
+		tokenService: tokenService,
 	}
 }
 
@@ -35,20 +46,18 @@ type registerUserResponse struct {
 }
 
 func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-	
 	var req registerUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	u, err := h.service.RegisterUser(r.Context(), req.Username, req.Email, req.Password)
+	u, err := h.userService.RegisterUser(r.Context(), req.Username, req.Email, req.Password)
 	if err != nil {
-		errorMap := []struct{
-			Err error
-			HTTP int
-			Code string
+		errorMap := []struct {
+			Err     error
+			HTTP    int
+			Code    string
 			Message string
 		}{
 			{user.ErrInvalidEmail, http.StatusBadRequest, "invalid_email", "invalid email"},
@@ -60,13 +69,13 @@ func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 		for _, e := range errorMap {
 			if errors.Is(err, e.Err) {
-				WriteJSONError(w, e.HTTP, e.Code, e.Message, h.log)
-				return;
+				WriteJSONError(w, e.HTTP, e.Code, e.Message)
+				return
 			}
 		}
 
 		h.log.Error(fmt.Sprintf("failed to register user: %v", err))
-		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "internal server error", h.log)
+		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "internal server error")
 		return
 	}
 
@@ -76,10 +85,63 @@ func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		Email:    u.Email.String(),
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		h.log.Error(fmt.Sprintf("failed to encode response: %v", err))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+	WriteJSON(w, http.StatusCreated, resp)
+}
+
+type loginUserRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type loginUserResponse struct {
+	AccessToken string `json:"access_token"`
+	ExpiresIn   int    `json:"expires_in"`
+}
+
+func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
+	var req loginUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "invalid request body")
+		return
 	}
+
+	user, err := h.userService.AuthenticateUser(r.Context(), req.Email, req.Password)
+	if err != nil {
+		WriteJSONError(w, http.StatusUnauthorized, "invalid_credentials", "invalid email or password")
+		return
+	}
+
+	accessToken, err := h.tokenService.GenerateAccessToken(user.ID)
+	if err != nil {
+		WriteJSONError(w, http.StatusInternalServerError, "server_error", "failed to generate access token")
+		return
+	}
+
+	refreshToken, err := h.tokenService.CreateRefreshToken(r.Context(), user.ID)
+	if err != nil {
+		WriteJSONError(w, http.StatusInternalServerError, "server_error", "failed to create refresh token")
+		return
+	}
+
+	cookie := &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken.Plaintext,
+		Path:     "/",
+		HttpOnly: true,
+		Expires:  refreshToken.ExpiresAt,
+		SameSite: http.SameSiteLaxMode,
+	}
+	if h.cfg.Env == "production" {
+		cookie.Secure = true
+	} else {
+		cookie.Secure = false
+	}
+	http.SetCookie(w, cookie)
+
+	resp := &loginUserResponse{
+		AccessToken: accessToken,
+		ExpiresIn:   int(h.cfg.AccessTokenTTL.Seconds()),
+	}
+
+	WriteJSON(w, http.StatusOK, resp)
 }

@@ -38,6 +38,7 @@ cd go-device-telemetry-api
 ```bash
 export DATABASE_URL="postgres://telemetry_user:telemetry_pass@localhost:5432/telemetry_db"
 export HTTP_PORT="8080"
+export JWT_SECRET=$(openssl rand -base64 32)
 ```
 
 3. Run server

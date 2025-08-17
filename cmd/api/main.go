@@ -27,7 +27,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	router := app.BuildApp(log, dbpool)
+	router := app.BuildApp(log, dbpool, cfg)
 
 	server := &http.Server{
 		Addr:         cfg.HTTPAddr,

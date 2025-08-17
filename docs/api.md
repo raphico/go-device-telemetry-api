@@ -23,13 +23,14 @@ Authorization: Bearer <JWT_TOKEN>
 ### 1. Register User
 
 `POST /auth/register`
+
 Registers a new user.
 
 **Request Body**:
 
 ```json
 {
-  "username": "john0x0",
+  "username": "john",
   "email": "john@example.com",
   "password": "strongpassword123"
 }
@@ -40,7 +41,40 @@ Registers a new user.
 ```json
 {
   "id": "user-uuid",
-  "name": "John Snow",
+  "username": "john",
   "email": "john@example.com"
 }
 ```
+
+**Errors**:
+
+- `400 Bad Request` → invalid email/password
+- `409 Conflict` → email already exists
+
+### 2. Login
+
+`POST /auth/login`
+
+Logs in a user, returns **JWT access_token** in JSON and sets a **refresh_token** in secure, HTTP-only cookie.
+
+**Request Body**:
+
+```json
+{
+  "email": "john@example.com",
+  "password": "strongpassword123"
+}
+```
+
+**Response** `200 OK`:
+
+```json
+{
+  "access_token": "<JWT_TOKEN>",
+  "expires_in": 3600
+}
+```
+
+**Errors**:
+
+- `401 Unauthorized` → invalid credentials

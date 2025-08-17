@@ -2,10 +2,7 @@ package http
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-
-	"github.com/raphico/go-device-telemetry-api/internal/logger"
 )
 
 type errorResponse struct {
@@ -13,14 +10,23 @@ type errorResponse struct {
 	Message string `json:"message"`
 }
 
-func WriteJSONError(w http.ResponseWriter, status int, code, msg string, log *logger.Logger) {
+func WriteJSONError(w http.ResponseWriter, status int, code, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	
+
 	if err := json.NewEncoder(w).Encode(errorResponse{
 		Error:   code,
 		Message: msg,
 	}); err != nil {
-		log.Error(fmt.Sprintf("failed to write JSON error: %v", err))
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func WriteJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }
