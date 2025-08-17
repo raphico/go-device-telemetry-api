@@ -48,7 +48,12 @@ type registerUserResponse struct {
 func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var req registerUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "invalid request body")
+		return
+	}
+
+	if req.Email == "" || req.Password == "" || req.Username == "" {
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "email, username, and password are required")
 		return
 	}
 
@@ -105,6 +110,11 @@ func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Email == "" || req.Password == "" {
+		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "email and password are required")
+		return
+	}
+
 	user, err := h.userService.AuthenticateUser(r.Context(), req.Email, req.Password)
 	if err != nil {
 		WriteJSONError(w, http.StatusUnauthorized, "invalid_credentials", "invalid email or password")
@@ -157,7 +167,13 @@ func (h *UserHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 
 	accessToken, refreshToken, err := h.tokenService.RotateTokens(r.Context(), refreshTok)
 	if err != nil {
-		WriteJSONError(w, http.StatusUnauthorized, "invalid_grant", "invalid or expired refresh token")
+		switch {
+		case errors.Is(err, token.ErrTokenNotFound):
+			WriteJSONError(w, http.StatusUnauthorized, "invalid_grant", "invalid or expired refresh token")
+		default:
+			h.log.Error(fmt.Sprintf("failed to refresh access token: %v", err))
+			WriteJSONError(w, http.StatusInternalServerError, "internal_error", "internal server error")
+		}
 		return
 	}
 
