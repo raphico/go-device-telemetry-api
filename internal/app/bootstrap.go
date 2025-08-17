@@ -21,7 +21,9 @@ func BuildApp(log *logger.Logger, dbpool *pgxpool.Pool, cfg config.Config) http.
 	userService := user.NewService(userRepo)
 	userHandler := transporthttp.NewUserHandler(log, cfg, userService, tokenService)
 
-	router := transporthttp.NewRouter(log, userHandler)
+	userMiddleware := transporthttp.NewUserMiddleware(tokenService)
+
+	router := transporthttp.NewRouter(log, userMiddleware, userHandler)
 
 	return router
 }

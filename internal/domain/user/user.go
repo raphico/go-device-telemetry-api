@@ -35,6 +35,12 @@ type Password struct {
 	hash []byte
 }
 
+var AnonymousUser = &User{}
+
+func (u *User) IsAnonymous() bool {
+	return u == AnonymousUser
+}
+
 func newUser(email, username, password string) (*User, error) {
 	addr, err := NewEmail(email)
 	if err != nil {

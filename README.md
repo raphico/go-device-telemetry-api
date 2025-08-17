@@ -15,7 +15,7 @@ A backend service built with **Go** for managing IoT devices, collecting telemet
 - **Telemetry Collection** (time-series sensor data)
 - **Command Dispatch** to devices
 - **Dockerized** for consistent deployment
-- **Testing** (unit & integration)
+- **Testing** (integration)
 - **CI/CD** pipeline (GitHub Actions)
 
 ## Tech Stack

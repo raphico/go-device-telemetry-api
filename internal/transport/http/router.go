@@ -10,16 +10,32 @@ import (
 	"github.com/raphico/go-device-telemetry-api/internal/logger"
 )
 
-func NewRouter(log *logger.Logger, userHandler *UserHandler) http.Handler {
+func NewRouter(log *logger.Logger, userMw *UserMiddleware, userHandler *UserHandler) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimw.RequestID)
 	r.Use(chimw.RealIP)
 	r.Use(chimw.Recoverer)
+	r.Use(userMw.AuthMiddleware)
 	r.Use(loggingMiddleware(log))
 	r.Use(chimw.Timeout(60 * time.Second))
 
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Route("/auth", func(r chi.Router) {
+			r.Post("/register", userHandler.RegisterUser)
+			r.Post("/login", userHandler.LoginUser)
+			r.Post("/refresh", userHandler.RefreshAccessToken)
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(userMw.RequireAuthMiddleware)
+
+			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("OK"))
+			})
+		})
+
 		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			if _, err := w.Write([]byte("OK")); err != nil {
@@ -27,25 +43,7 @@ func NewRouter(log *logger.Logger, userHandler *UserHandler) http.Handler {
 			}
 		})
 
-		r.Route("/auth", func(r chi.Router) {
-			r.Post("/register", userHandler.RegisterUser)
-			r.Post("/login", userHandler.LoginUser)
-			r.Post("/refresh", userHandler.RefreshAccessToken)
-		})
 	})
 
 	return r
-}
-
-func loggingMiddleware(log *logger.Logger) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
-			next.ServeHTTP(w, r)
-			log.Info(fmt.Sprintf(
-				"HTTP request: method=%s, path=%s, remote=%s, duration=%s, reqID=%s",
-				r.Method, r.URL.Path, r.RemoteAddr, time.Since(start), chimw.GetReqID(r.Context()),
-			))
-		})
-	}
 }
