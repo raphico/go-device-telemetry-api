@@ -53,32 +53,38 @@ func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Email == "" || req.Password == "" || req.Username == "" {
-		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Email, username, and password are required")
-		return
-	}
-
 	u, err := h.userService.RegisterUser(r.Context(), req.Username, req.Email, req.Password)
 	if err != nil {
 		switch {
-		case errors.Is(err, user.ErrInvalidEmail):
-			WriteJSONError(w, http.StatusBadRequest, invalidEmail, "Invalid email")
+		case errors.Is(err, user.ErrEmailInvalid),
+			errors.Is(err, user.ErrEmailRequired):
+			WriteJSONError(w, http.StatusBadRequest, invalidEmail, err.Error())
 			return
-		case errors.Is(err, user.ErrInvalidUsername):
-			WriteJSONError(w, http.StatusBadRequest, invalidUsername, "Invalid username")
+
+		case errors.Is(err, user.ErrUsernameRequired),
+			errors.Is(err, user.ErrUsernameTooShort),
+			errors.Is(err, user.ErrUsernameTooLong),
+			errors.Is(err, user.ErrUsernameInvalidChars):
+			WriteJSONError(w, http.StatusBadRequest, invalidUsername, err.Error())
 			return
-		case errors.Is(err, user.ErrInvalidPassword):
-			WriteJSONError(w, http.StatusBadRequest, invalidPassword, "Invalid password")
+
+		case errors.Is(err, user.ErrPasswordRequired),
+			errors.Is(err, user.ErrPasswordTooShort),
+			errors.Is(err, user.ErrPasswordTooWeak):
+			WriteJSONError(w, http.StatusBadRequest, invalidPassword, err.Error())
 			return
+
 		case errors.Is(err, user.ErrEmailAlreadyExists):
-			WriteJSONError(w, http.StatusConflict, emailExists, "Email already exists")
+			WriteJSONError(w, http.StatusConflict, emailExists, err.Error())
 			return
-		case errors.Is(err, user.ErrUsernameAlreadyExists):
-			WriteJSONError(w, http.StatusConflict, usernameExists, "Username already exists")
+
+		case errors.Is(err, user.ErrUsernameTaken):
+			WriteJSONError(w, http.StatusConflict, usernameExists, err.Error())
 			return
+
 		default:
 			h.log.Error(fmt.Sprintf("failed to register user: %v", err))
-			WriteJSONError(w, http.StatusInternalServerError, internalError, "Internal server error")
+			WriteInternalError(w)
 			return
 		}
 	}
@@ -109,26 +115,26 @@ func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Email == "" || req.Password == "" {
-		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Email and password are required")
+	u, err := h.userService.AuthenticateUser(r.Context(), req.Email, req.Password)
+	if err != nil {
+		if errors.Is(err, user.ErrInvalidCredentials) {
+			WriteJSONError(w, http.StatusUnauthorized, invalidCredentials, "Invalid credentials")
+			return
+		}
+		h.log.Error(fmt.Sprintf("failed to authenticate user: %v", err))
+		WriteInternalError(w)
 		return
 	}
 
-	user, err := h.userService.AuthenticateUser(r.Context(), req.Email, req.Password)
+	accessToken, err := h.tokenService.GenerateAccessToken(u.ID)
 	if err != nil {
-		WriteJSONError(w, http.StatusUnauthorized, invalidCredentials, "Invalid email or password")
+		WriteInternalError(w)
 		return
 	}
 
-	accessToken, err := h.tokenService.GenerateAccessToken(user.ID)
+	refreshToken, err := h.tokenService.CreateRefreshToken(r.Context(), u.ID)
 	if err != nil {
-		WriteJSONError(w, http.StatusInternalServerError, internalError, "Failed to generate access token")
-		return
-	}
-
-	refreshToken, err := h.tokenService.CreateRefreshToken(r.Context(), user.ID)
-	if err != nil {
-		WriteJSONError(w, http.StatusInternalServerError, internalError, "Failed to create refresh token")
+		WriteInternalError(w)
 		return
 	}
 
@@ -154,7 +160,7 @@ func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
-		WriteJSONError(w, http.StatusUnauthorized, invalidRequest, "Refresh token missing")
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Refresh token missing")
 		return
 	}
 
@@ -166,7 +172,7 @@ func (h *UserHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 			WriteJSONError(w, http.StatusUnauthorized, invalidGrant, "Invalid or expired refresh token")
 		default:
 			h.log.Error(fmt.Sprintf("failed to refresh access token: %v", err))
-			WriteJSONError(w, http.StatusInternalServerError, internalError, "Internal server error")
+			WriteInternalError(w)
 		}
 		return
 	}
@@ -205,7 +211,7 @@ func (h *UserHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNoContent)
 		default:
 			h.log.Error(fmt.Sprintf("failed to revoke refresh token: %v", err))
-			WriteJSONError(w, http.StatusInternalServerError, internalError, "Logout failed, please try again")
+			WriteInternalError(w)
 		}
 		return
 	}

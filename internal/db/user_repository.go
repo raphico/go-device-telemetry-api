@@ -45,7 +45,7 @@ func (r *UserRepository) Create(ctx context.Context, u *user.User) error {
 			case "users_email_key":
 				return user.ErrEmailAlreadyExists
 			case "users_username_key":
-				return user.ErrUsernameAlreadyExists
+				return user.ErrUsernameTaken
 			}
 		}
 

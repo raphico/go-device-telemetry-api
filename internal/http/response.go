@@ -48,3 +48,7 @@ func WriteJSON(w http.ResponseWriter, status int, data any, meta any) {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
 }
+
+func WriteInternalError(w http.ResponseWriter) {
+	WriteJSONError(w, http.StatusInternalServerError, internalError, "Something went wrong. Please, try again later")
+}

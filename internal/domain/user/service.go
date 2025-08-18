@@ -15,7 +15,7 @@ func NewService(repo Repository) *Service {
 }
 
 func (s *Service) RegisterUser(ctx context.Context, username, email, password string) (*User, error) {
-	user, err := newUser(email, username, password)
+	user, err := NewUser(email, username, password)
 	if err != nil {
 		return nil, err
 	}
