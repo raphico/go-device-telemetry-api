@@ -49,49 +49,47 @@ type registerUserResponse struct {
 func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var req registerUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "invalid request body")
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Invalid request body")
 		return
 	}
 
 	if req.Email == "" || req.Password == "" || req.Username == "" {
-		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "email, username, and password are required")
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Email, username, and password are required")
 		return
 	}
 
 	u, err := h.userService.RegisterUser(r.Context(), req.Username, req.Email, req.Password)
 	if err != nil {
-		errorMap := []struct {
-			Err     error
-			HTTP    int
-			Code    string
-			Message string
-		}{
-			{user.ErrInvalidEmail, http.StatusBadRequest, "invalid_email", "invalid email"},
-			{user.ErrInvalidUsername, http.StatusBadRequest, "invalid_username", "invalid username"},
-			{user.ErrInvalidPassword, http.StatusBadRequest, "invalid_password", "invalid password"},
-			{user.ErrEmailAlreadyExists, http.StatusConflict, "email_exists", "email already exists"},
-			{user.ErrUsernameAlreadyExists, http.StatusConflict, "username_exists", "username already exists"},
+		switch {
+		case errors.Is(err, user.ErrInvalidEmail):
+			WriteJSONError(w, http.StatusBadRequest, invalidEmail, "Invalid email")
+			return
+		case errors.Is(err, user.ErrInvalidUsername):
+			WriteJSONError(w, http.StatusBadRequest, invalidUsername, "Invalid username")
+			return
+		case errors.Is(err, user.ErrInvalidPassword):
+			WriteJSONError(w, http.StatusBadRequest, invalidPassword, "Invalid password")
+			return
+		case errors.Is(err, user.ErrEmailAlreadyExists):
+			WriteJSONError(w, http.StatusConflict, emailExists, "Email already exists")
+			return
+		case errors.Is(err, user.ErrUsernameAlreadyExists):
+			WriteJSONError(w, http.StatusConflict, usernameExists, "Username already exists")
+			return
+		default:
+			h.log.Error(fmt.Sprintf("failed to register user: %v", err))
+			WriteJSONError(w, http.StatusInternalServerError, internalError, "Internal server error")
+			return
 		}
-
-		for _, e := range errorMap {
-			if errors.Is(err, e.Err) {
-				WriteJSONError(w, e.HTTP, e.Code, e.Message)
-				return
-			}
-		}
-
-		h.log.Error(fmt.Sprintf("failed to register user: %v", err))
-		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "internal server error")
-		return
 	}
 
-	resp := registerUserResponse{
+	res := registerUserResponse{
 		ID:       u.ID.String(),
 		Username: u.Username.String(),
 		Email:    u.Email.String(),
 	}
 
-	WriteJSON(w, http.StatusCreated, resp)
+	WriteJSON(w, http.StatusCreated, res, nil)
 }
 
 type loginUserRequest struct {
@@ -107,30 +105,30 @@ type tokenResponse struct {
 func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	var req loginUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "invalid request body")
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Invalid request body")
 		return
 	}
 
 	if req.Email == "" || req.Password == "" {
-		WriteJSONError(w, http.StatusBadRequest, "invalid_request", "email and password are required")
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Email and password are required")
 		return
 	}
 
 	user, err := h.userService.AuthenticateUser(r.Context(), req.Email, req.Password)
 	if err != nil {
-		WriteJSONError(w, http.StatusUnauthorized, "invalid_credentials", "invalid email or password")
+		WriteJSONError(w, http.StatusUnauthorized, invalidCredentials, "Invalid email or password")
 		return
 	}
 
 	accessToken, err := h.tokenService.GenerateAccessToken(user.ID)
 	if err != nil {
-		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "failed to generate access token")
+		WriteJSONError(w, http.StatusInternalServerError, internalError, "Failed to generate access token")
 		return
 	}
 
 	refreshToken, err := h.tokenService.CreateRefreshToken(r.Context(), user.ID)
 	if err != nil {
-		WriteJSONError(w, http.StatusInternalServerError, "internal_error", "failed to create refresh token")
+		WriteJSONError(w, http.StatusInternalServerError, internalError, "Failed to create refresh token")
 		return
 	}
 
@@ -141,11 +139,7 @@ func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Expires:  refreshToken.ExpiresAt,
 		SameSite: http.SameSiteLaxMode,
-	}
-	if h.cfg.Env == "production" {
-		cookie.Secure = true
-	} else {
-		cookie.Secure = false
+		Secure:   h.cfg.Env == "production",
 	}
 	http.SetCookie(w, cookie)
 
@@ -154,26 +148,25 @@ func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		ExpiresIn:   int(h.cfg.AccessTokenTTL.Seconds()),
 	}
 
-	WriteJSON(w, http.StatusOK, resp)
+	WriteJSON(w, http.StatusOK, resp, nil)
 }
 
 func (h *UserHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
-		WriteJSONError(w, http.StatusUnauthorized, "invalid_request", "refresh token missing")
+		WriteJSONError(w, http.StatusUnauthorized, invalidRequest, "Refresh token missing")
 		return
 	}
 
 	refreshTok := cookie.Value
-
 	accessToken, refreshToken, err := h.tokenService.RotateTokens(r.Context(), refreshTok)
 	if err != nil {
 		switch {
 		case errors.Is(err, token.ErrTokenNotFound):
-			WriteJSONError(w, http.StatusUnauthorized, "invalid_grant", "invalid or expired refresh token")
+			WriteJSONError(w, http.StatusUnauthorized, invalidGrant, "Invalid or expired refresh token")
 		default:
 			h.log.Error(fmt.Sprintf("failed to refresh access token: %v", err))
-			WriteJSONError(w, http.StatusInternalServerError, "internal_error", "internal server error")
+			WriteJSONError(w, http.StatusInternalServerError, internalError, "Internal server error")
 		}
 		return
 	}
@@ -185,11 +178,7 @@ func (h *UserHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 		HttpOnly: true,
 		Expires:  refreshToken.ExpiresAt,
 		SameSite: http.SameSiteLaxMode,
-	}
-	if h.cfg.Env == "production" {
-		cookie.Secure = true
-	} else {
-		cookie.Secure = false
+		Secure:   h.cfg.Env == "production",
 	}
 	http.SetCookie(w, cookie)
 
@@ -198,12 +187,11 @@ func (h *UserHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 		ExpiresIn:   int(h.cfg.AccessTokenTTL.Seconds()),
 	}
 
-	WriteJSON(w, http.StatusOK, resp)
+	WriteJSON(w, http.StatusOK, resp, nil)
 }
 
 func (h *UserHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("refresh_token")
-
 	if err != nil {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -217,7 +205,7 @@ func (h *UserHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNoContent)
 		default:
 			h.log.Error(fmt.Sprintf("failed to revoke refresh token: %v", err))
-			WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Logout failed, please try again")
+			WriteJSONError(w, http.StatusInternalServerError, internalError, "Logout failed, please try again")
 		}
 		return
 	}
@@ -229,12 +217,8 @@ func (h *UserHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		HttpOnly: true,
 		Expires:  time.Unix(0, 0),
+		Secure:   h.cfg.Env == "production",
 	})
-	if h.cfg.Env == "production" {
-		cookie.Secure = true
-	} else {
-		cookie.Secure = false
-	}
 
 	w.WriteHeader(http.StatusNoContent)
 }

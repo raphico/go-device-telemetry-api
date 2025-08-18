@@ -121,6 +121,41 @@ Stores commands issued to devices with flexible payloads.
 }
 ```
 
-## **5. Relationships Overview**
+## **5. Tokens Table**
+
+Stores authentication and verification tokens securely.
+
+| Column       | Type        | Notes                                                      |
+| ------------ | ----------- | ---------------------------------------------------------- |
+| id           | UUID        | Primary Key                                                |
+| token_hash   | BYTEA       | Hashed token (unique, never store plain tokens)            |
+| user_id      | UUID        | Foreign Key → Users(id), cascade on delete                 |
+| scope        | TEXT        | Token type: `auth`, `email_verification`, `password_reset` |
+| revoked      | BOOLEAN     | Whether the token is revoked                               |
+| expires_at   | TIMESTAMPTZ | Expiry timestamp                                           |
+| last_used_at | TIMESTAMPTZ | When token was last used (nullable)                        |
+| created_at   | TIMESTAMPTZ | Creation time                                              |
+
+**Example:**
+
+```json
+{
+  "id": "uuid-7890",
+  "token_hash": "base64-hash==",
+  "user_id": "uuid-1234",
+  "scope": "auth",
+  "revoked": false,
+  "expires_at": "2025-08-15T12:00:00Z",
+  "last_used_at": "2025-08-14T12:30:00Z",
+  "created_at": "2025-08-14T12:00:00Z"
+}
+```
+
+## **6. Relationships Overview**
+
+- **Users** have many **Devices**.
+- **Devices** have many **Telemetry entries**.
+- **Devices** can receive many **Commands**.
+- **Users** have many **Tokens**.
 
 ![ER Diagram](./er-diagram.png)

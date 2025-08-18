@@ -8,8 +8,8 @@ import (
 	"github.com/raphico/go-device-telemetry-api/internal/db"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/token"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
+	transporthttp "github.com/raphico/go-device-telemetry-api/internal/http"
 	"github.com/raphico/go-device-telemetry-api/internal/logger"
-	transporthttp "github.com/raphico/go-device-telemetry-api/internal/transport/http"
 )
 
 func BuildApp(log *logger.Logger, dbpool *pgxpool.Pool, cfg config.Config) http.Handler {

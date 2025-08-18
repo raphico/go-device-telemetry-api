@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -17,7 +16,7 @@ func NewRouter(log *logger.Logger, userMw *UserMiddleware, userHandler *UserHand
 	r.Use(chimw.RealIP)
 	r.Use(chimw.Recoverer)
 	r.Use(userMw.AuthMiddleware)
-	r.Use(loggingMiddleware(log))
+	r.Use(LoggingMiddleware(log))
 	r.Use(chimw.Timeout(60 * time.Second))
 
 	r.Route("/api/v1", func(r chi.Router) {
@@ -34,10 +33,7 @@ func NewRouter(log *logger.Logger, userMw *UserMiddleware, userHandler *UserHand
 		})
 
 		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			if _, err := w.Write([]byte("OK")); err != nil {
-				log.Error(fmt.Sprintf("failed to write health response: %v", err))
-			}
+			WriteJSON(w, http.StatusOK, "OK", nil)
 		})
 
 	})
