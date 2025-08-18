@@ -1,107 +1,161 @@
-# API Documentation
+# Database Design
 
-## Overview
+This document outlines the database structure for the **Device Telemetry API**, showing tables, column types, relationships, and example data.
 
-This API allows registering devices, sending commands, and retrieving telemetry data.
-All requests and responses are in **JSON**.
-Base URL:
+## **1. Users Table**
 
-```
-/api/v1
-```
+Stores user accounts and authentication info.
 
-## Authentication
+| Column        | Type        | Notes                 |
+| ------------- | ----------- | --------------------- |
+| id            | UUID        | Primary Key           |
+| username      | VARCHAR     | Unique                |
+| email         | VARCHAR     | Unique                |
+| password_hash | TEXT        | Hashed password       |
+| created_at    | TIMESTAMPTZ | Account creation time |
+| updated_at    | TIMESTAMPTZ | Last update time      |
 
-All endpoints (except `/auth/register` and `/auth/login`) require authentication via Bearer token:
-
-```
-Authorization: Bearer <JWT_TOKEN>
-```
-
-## **Auth Routes**
-
-### 1. Register User
-
-`POST /auth/register`
-
-Registers a new user.
-
-**Request Body**:
+**Example:**
 
 ```json
 {
-  "username": "john",
+  "id": "uuid-1234",
+  "username": "john_doe",
   "email": "john@example.com",
-  "password": "strongpassword123"
+  "password_hash": "$2a$12$abc123hashedpassword",
+  "created_at": "2025-08-14T12:00:00Z",
+  "updated_at": "2025-08-14T12:00:00Z"
 }
 ```
 
-**Response** `201 Created`:
+## **2. Devices Table**
+
+Tracks user devices, type, status, and optional metadata.
+
+| Column      | Type      | Notes                                 |
+| ----------- | --------- | ------------------------------------- |
+| id          | UUID      | Primary Key                           |
+| user_id     | UUID      | Foreign Key → Users(id)               |
+| name        | VARCHAR   | Device name                           |
+| device_type | VARCHAR   | E.g., temperature_sensor              |
+| status      | VARCHAR   | Online / Offline                      |
+| metadata    | JSONB     | Flexible info like firmware, location |
+| created_at  | TIMESTAMP | Device added time                     |
+| updated_at  | TIMESTAMP | Last update time                      |
+
+**Example:**
 
 ```json
 {
-  "id": "user-uuid",
-  "username": "john",
-  "email": "john@example.com"
+  "id": "uuid-5678",
+  "user_id": "uuid-1234",
+  "name": "Living Room Sensor",
+  "device_type": "temperature_sensor",
+  "status": "Online",
+  "metadata": {
+    "manufacturer": "AcmeSensors",
+    "firmware_version": "v1.2.3",
+    "location": "Living Room"
+  },
+  "created_at": "2025-08-14T12:05:00Z",
+  "updated_at": "2025-08-14T12:30:00Z"
 }
 ```
 
-**Errors**:
+## **3. Telemetry Table**
 
-- `400 Bad Request` → invalid email/password
-- `409 Conflict` → email already exists
+Stores sensor readings from devices. Flexible using JSONB.
 
-### 2. Login
+| Column      | Type      | Notes                     |
+| ----------- | --------- | ------------------------- |
+| id          | UUID      | Primary Key               |
+| device_id   | UUID      | Foreign Key → Devices(id) |
+| data_type   | VARCHAR   | E.g., environment, motion |
+| value       | JSONB     | Sensor readings, flexible |
+| recorded_at | TIMESTAMP | Timestamp of reading      |
 
-`POST /auth/login`
-
-Logs in a user, returns **JWT access_token** in JSON and sets a **refresh_token** in secure, HTTP-only cookie.
-
-**Request Body**:
+**Example:**
 
 ```json
 {
-  "email": "john@example.com",
-  "password": "strongpassword123"
+  "id": "uuid-9012",
+  "device_id": "uuid-5678",
+  "data_type": "environment",
+  "value": {
+    "temperature": 24.5,
+    "humidity": 48.2,
+    "light": 300
+  },
+  "recorded_at": "2025-08-14T12:10:00Z"
 }
 ```
 
-**Response** `200 OK`:
+## **4. Commands Table**
+
+Stores commands issued to devices with flexible payloads.
+
+| Column      | Type      | Notes                       |
+| ----------- | --------- | --------------------------- |
+| id          | UUID      | Primary Key                 |
+| device_id   | UUID      | Foreign Key → Devices(id)   |
+| command     | VARCHAR   | Command name                |
+| payload     | JSONB     | Flexible command arguments  |
+| status      | VARCHAR   | Pending / Executed / Failed |
+| created_at  | TIMESTAMP | Command issued time         |
+| executed_at | TIMESTAMP | When executed (nullable)    |
+
+**Example:**
 
 ```json
 {
-  "access_token": "<JWT_TOKEN>",
-  "expires_in": 3600
+  "id": "uuid-3456",
+  "device_id": "uuid-5678",
+  "command": "set_threshold",
+  "payload": {
+    "temperature": 25.0,
+    "humidity": 50.0
+  },
+  "status": "Pending",
+  "created_at": "2025-08-14T12:15:00Z",
+  "executed_at": null
 }
 ```
 
-**Errors**:
+## **5. Tokens Table**
 
-- `401 Unauthorized` → invalid credentials
+Stores authentication and verification tokens securely.
 
-### 3. Refresh Token
+| Column       | Type        | Notes                                                      |
+| ------------ | ----------- | ---------------------------------------------------------- |
+| id           | UUID        | Primary Key                                                |
+| token_hash   | BYTEA       | Hashed token (unique, never store plain tokens)            |
+| user_id      | UUID        | Foreign Key → Users(id), cascade on delete                 |
+| scope        | TEXT        | Token type: `auth`, `email_verification`, `password_reset` |
+| revoked      | BOOLEAN     | Whether the token is revoked                               |
+| expires_at   | TIMESTAMPTZ | Expiry timestamp                                           |
+| last_used_at | TIMESTAMPTZ | When token was last used (nullable)                        |
+| created_at   | TIMESTAMPTZ | Creation time                                              |
 
-`POST /auth/refresh`
-
-Uses the **refresh token cookie** to issue a new access token.
-
-**Response** `200 OK`:
+**Example:**
 
 ```json
 {
-  "access_token": "<NEW_JWT_TOKEN>",
-  "expires_in": 3600
+  "id": "uuid-7890",
+  "token_hash": "base64-hash==",
+  "user_id": "uuid-1234",
+  "scope": "auth",
+  "revoked": false,
+  "expires_at": "2025-08-15T12:00:00Z",
+  "last_used_at": "2025-08-14T12:30:00Z",
+  "created_at": "2025-08-14T12:00:00Z"
 }
 ```
 
-**Errors**:
+## **6. Relationships Overview**
 
-- `401 Unauthorized` → missing, invalid, or expired refresh token
+- **Users** have many **Devices**.
+- **Devices** have many **Telemetry entries**.
+- **Devices** can receive many **Commands**.
+- **Users** have many **Tokens**.
 
-### 4. Logout
-
-`POST /auth/logout`
-
-Revokes refresh token (cookie cleared).
-
-**Response** `204 No Content`
+![ER Diagram](./er-diagram.png)
