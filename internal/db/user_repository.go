@@ -87,24 +87,5 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*user.U
 		return nil, fmt.Errorf("failed to find user: %w", err)
 	}
 
-	u := &user.User{}
-
-	u.ID = user.UserID(id)
-	u.Password = user.PasswordFromHash(passwordHash)
-	u.CreatedAt = createdAt
-	u.UpdatedAt = updatedAt
-
-	e, err := user.NewEmail(emailStr)
-	if err != nil {
-		return nil, fmt.Errorf("corrupt user data: %w", err)
-	}
-	u.Email = e
-
-	uname, err := user.NewUsername(usernameStr)
-	if err != nil {
-		return nil, fmt.Errorf("corrupt user data: %w", err)
-	}
-	u.Username = uname
-
-	return u, nil
+	return user.RehydrateUser(id, emailStr, usernameStr, passwordHash, createdAt, updatedAt)
 }

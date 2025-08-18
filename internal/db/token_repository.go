@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/token"
+	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
 )
 
 type TokenRepository struct {
@@ -57,7 +59,17 @@ func (r *TokenRepository) Create(ctx context.Context, t *token.Token) error {
 }
 
 func (r *TokenRepository) FindValidTokenByHash(ctx context.Context, hash []byte, scope string) (*token.Token, error) {
-	t := &token.Token{}
+	var (
+		id         token.TokenID
+		dbHash     []byte
+		userID     user.UserID
+		dbScope    string
+		revoked    bool
+		expiresAt  time.Time
+		lastUsedAt *time.Time
+		createdAt  time.Time
+	)
+
 	query := `
 		SELECT id, token_hash, user_id, scope, revoked, expires_at, last_used_at, created_at
 		FROM tokens
@@ -68,25 +80,23 @@ func (r *TokenRepository) FindValidTokenByHash(ctx context.Context, hash []byte,
 	`
 
 	err := r.db.QueryRow(ctx, query, hash, scope).Scan(
-		&t.ID,
-		&t.Hash,
-		&t.UserID,
-		&t.Scope,
-		&t.Revoked,
-		&t.ExpiresAt,
-		&t.LastUsedAt,
-		&t.CreatedAt,
+		&id,
+		&dbHash,
+		&userID,
+		&dbScope,
+		&revoked,
+		&expiresAt,
+		&lastUsedAt,
+		&createdAt,
 	)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, token.ErrTokenNotFound
 		}
-
 		return nil, fmt.Errorf("failed to find token: %w", err)
 	}
 
-	return t, nil
+	return token.RehydrateToken(id, dbHash, userID, dbScope, revoked, expiresAt, lastUsedAt, createdAt), nil
 }
 
 func (r *TokenRepository) Revoke(ctx context.Context, scope string, hash []byte) error {

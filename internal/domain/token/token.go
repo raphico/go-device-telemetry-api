@@ -48,3 +48,25 @@ func HashPlaintext(plaintext string) []byte {
 	hash := sha256.Sum256([]byte(plaintext))
 	return hash[:]
 }
+
+func RehydrateToken(
+	id TokenID,
+	hash []byte,
+	userID user.UserID,
+	scope string,
+	revoked bool,
+	expiresAt time.Time,
+	lastUsedAt *time.Time,
+	createdAt time.Time,
+) *Token {
+	return &Token{
+		ID:         id,
+		Hash:       hash,
+		UserID:     userID,
+		Scope:      scope,
+		Revoked:    revoked,
+		ExpiresAt:  expiresAt,
+		LastUsedAt: lastUsedAt,
+		CreatedAt:  createdAt,
+	}
+}
