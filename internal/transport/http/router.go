@@ -30,10 +30,7 @@ func NewRouter(log *logger.Logger, userMw *UserMiddleware, userHandler *UserHand
 		r.Group(func(r chi.Router) {
 			r.Use(userMw.RequireAuthMiddleware)
 
-			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("OK"))
-			})
+			r.Post("/auth/logout", userHandler.LogoutUser)
 		})
 
 		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {

@@ -65,6 +65,16 @@ func (s *Service) CreateRefreshToken(ctx context.Context, userId user.UserID) (*
 	return token, nil
 }
 
+func (s *Service) RevokeRefreshToken(ctx context.Context, refreshTok string) error {
+	hash := HashPlaintext(refreshTok)
+
+	if err := s.repo.Revoke(ctx, "auth", hash); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Service) RotateTokens(ctx context.Context, refreshTok string) (string, *Token, error) {
 	hash := HashPlaintext(refreshTok)
 

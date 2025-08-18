@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/raphico/go-device-telemetry-api/internal/config"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/token"
@@ -198,4 +199,46 @@ func (h *UserHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 	}
 
 	WriteJSON(w, http.StatusOK, resp)
+}
+
+type logoutResponse struct {
+	Message string `json:"message"`
+}
+
+func (h *UserHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("refresh_token")
+
+	if err != nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	refreshToken := cookie.Value
+	err = h.tokenService.RevokeRefreshToken(r.Context(), refreshToken)
+	if err != nil {
+		switch {
+		case errors.Is(err, token.ErrTokenNotFound):
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			h.log.Error(fmt.Sprintf("failed to revoke refresh token: %v", err))
+			WriteJSONError(w, http.StatusInternalServerError, "internal_error", "Logout failed, please try again")
+		}
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+		HttpOnly: true,
+		Expires:  time.Unix(0, 0),
+	})
+	if h.cfg.Env == "production" {
+		cookie.Secure = true
+	} else {
+		cookie.Secure = false
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

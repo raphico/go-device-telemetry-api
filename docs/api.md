@@ -97,3 +97,11 @@ Uses the **refresh token cookie** to issue a new access token.
 **Errors**:
 
 - `401 Unauthorized` → missing, invalid, or expired refresh token
+
+### 4. Logout
+
+`POST /auth/logout`
+
+Revokes refresh token (cookie cleared).
+
+**Response** `204 No Content`
