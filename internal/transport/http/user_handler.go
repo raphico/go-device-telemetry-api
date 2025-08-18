@@ -201,10 +201,6 @@ func (h *UserHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 	WriteJSON(w, http.StatusOK, resp)
 }
 
-type logoutResponse struct {
-	Message string `json:"message"`
-}
-
 func (h *UserHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("refresh_token")
 
