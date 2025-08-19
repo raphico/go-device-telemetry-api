@@ -51,7 +51,7 @@ Tracks user devices, type, status, and optional metadata.
   "user_id": "uuid-1234",
   "name": "Living Room Sensor",
   "device_type": "temperature_sensor",
-  "status": "Online",
+  "status": "online",
   "metadata": {
     "manufacturer": "AcmeSensors",
     "firmware_version": "v1.2.3",

@@ -62,7 +62,7 @@ func (h *DeviceHandler) HandleCreateDevice(w http.ResponseWriter, r *http.Reques
 			errors.Is(err, device.ErrInvalidStatus),
 			errors.Is(err, device.ErrInvalidDeviceType),
 			errors.Is(err, device.ErrInvalidMetadata):
-			WriteJSONError(w, http.StatusBadRequest, validationError, err.Error())
+			WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
 			return
 
 		case errors.Is(err, user.ErrUserNotFound):
@@ -85,4 +85,8 @@ func (h *DeviceHandler) HandleCreateDevice(w http.ResponseWriter, r *http.Reques
 	}
 
 	WriteJSON(w, http.StatusCreated, res, nil)
+}
+
+func (h *DeviceHandler) HandleGetDeviceById(w http.ResponseWriter, r *http.Request) {
+
 }

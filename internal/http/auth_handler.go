@@ -54,30 +54,21 @@ func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	u, err := h.auth.Register(r.Context(), req.Username, req.Email, req.Password)
 	if err != nil {
 		switch {
-		case errors.Is(err, user.ErrEmailInvalid),
-			errors.Is(err, user.ErrEmailRequired):
-			WriteJSONError(w, http.StatusBadRequest, invalidEmail, err.Error())
-			return
-
 		case errors.Is(err, user.ErrUsernameRequired),
 			errors.Is(err, user.ErrUsernameTooShort),
 			errors.Is(err, user.ErrUsernameTooLong),
-			errors.Is(err, user.ErrUsernameInvalidChars):
-			WriteJSONError(w, http.StatusBadRequest, invalidUsername, err.Error())
-			return
-
-		case errors.Is(err, user.ErrPasswordRequired),
+			errors.Is(err, user.ErrEmailInvalid),
+			errors.Is(err, user.ErrEmailRequired),
+			errors.Is(err, user.ErrPasswordRequired),
 			errors.Is(err, user.ErrPasswordTooShort),
-			errors.Is(err, user.ErrPasswordTooWeak):
-			WriteJSONError(w, http.StatusBadRequest, invalidPassword, err.Error())
+			errors.Is(err, user.ErrPasswordTooWeak),
+			errors.Is(err, user.ErrUsernameInvalidChars):
+			WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
 			return
 
-		case errors.Is(err, user.ErrEmailAlreadyExists):
-			WriteJSONError(w, http.StatusConflict, emailExists, err.Error())
-			return
-
-		case errors.Is(err, user.ErrUsernameTaken):
-			WriteJSONError(w, http.StatusConflict, usernameExists, err.Error())
+		case errors.Is(err, user.ErrEmailAlreadyExists),
+			errors.Is(err, user.ErrUsernameTaken):
+			WriteJSONError(w, http.StatusConflict, conflict, err.Error())
 			return
 
 		default:
@@ -116,7 +107,7 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	accessToken, refreshToken, err := h.auth.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, user.ErrInvalidCredentials) {
-			WriteJSONError(w, http.StatusUnauthorized, invalidCredentials, "Invalid credentials")
+			WriteJSONError(w, http.StatusUnauthorized, invalidRequest, "Invalid credentials")
 			return
 		}
 
@@ -155,7 +146,7 @@ func (h *AuthHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		switch {
 		case errors.Is(err, token.ErrTokenNotFound):
-			WriteJSONError(w, http.StatusUnauthorized, invalidGrant, "Invalid or expired refresh token")
+			WriteJSONError(w, http.StatusUnauthorized, unauthorized, "Invalid or expired refresh token")
 		default:
 			h.log.Error(fmt.Sprintf("failed to refresh access token: %v", err))
 			WriteInternalError(w)
