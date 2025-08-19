@@ -9,7 +9,12 @@ import (
 	"github.com/raphico/go-device-telemetry-api/internal/logger"
 )
 
-func NewRouter(log *logger.Logger, userMw *UserMiddleware, userHandler *UserHandler) http.Handler {
+func NewRouter(
+	log *logger.Logger,
+	userMw *UserMiddleware,
+	userHandler *UserHandler,
+	deviceHandler *DeviceHandler,
+) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimw.RequestID)
@@ -30,12 +35,15 @@ func NewRouter(log *logger.Logger, userMw *UserMiddleware, userHandler *UserHand
 			r.Use(userMw.RequireAuthMiddleware)
 
 			r.Post("/auth/logout", userHandler.LogoutUser)
+
+			r.Route("/devices", func(r chi.Router) {
+				r.Post("/", deviceHandler.HandleCreateDevice)
+			})
 		})
 
 		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 			WriteJSON(w, http.StatusOK, "OK", nil)
 		})
-
 	})
 
 	return r

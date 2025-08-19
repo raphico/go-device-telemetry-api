@@ -47,7 +47,7 @@ func (r *TokenRepository) Create(ctx context.Context, t *token.Token) error {
 				}
 			case "23503": // foreign_key_constraint
 				if pgErr.ConstraintName == "tokens_user_id_fkey" {
-					return token.ErrUserNotFound
+					return user.ErrUserNotFound
 				}
 			}
 		}

@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/raphico/go-device-telemetry-api/internal/config"
 	"github.com/raphico/go-device-telemetry-api/internal/db"
+	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/token"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
 	transporthttp "github.com/raphico/go-device-telemetry-api/internal/http"
@@ -21,9 +22,13 @@ func BuildApp(log *logger.Logger, dbpool *pgxpool.Pool, cfg config.Config) http.
 	userService := user.NewService(userRepo)
 	userHandler := transporthttp.NewUserHandler(log, cfg, userService, tokenService)
 
+	deviceRepo := db.NewDeviceRepository(dbpool)
+	deviceService := device.NewService(deviceRepo)
+	deviceHandler := transporthttp.NewDeviceHandler(log, deviceService)
+
 	userMiddleware := transporthttp.NewUserMiddleware(tokenService)
 
-	router := transporthttp.NewRouter(log, userMiddleware, userHandler)
+	router := transporthttp.NewRouter(log, userMiddleware, userHandler, deviceHandler)
 
 	return router
 }

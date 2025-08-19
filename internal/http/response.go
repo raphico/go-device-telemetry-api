@@ -52,3 +52,7 @@ func WriteJSON(w http.ResponseWriter, status int, data any, meta any) {
 func WriteInternalError(w http.ResponseWriter) {
 	WriteJSONError(w, http.StatusInternalServerError, internalError, "Something went wrong. Please, try again later")
 }
+
+func WriteUnauthorizedError(w http.ResponseWriter) {
+	WriteJSONError(w, http.StatusUnauthorized, unauthorized, "User authentication required")
+}

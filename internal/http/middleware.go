@@ -53,7 +53,7 @@ func (um *UserMiddleware) RequireAuthMiddleware(next http.Handler) http.Handler 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, ok := r.Context().Value(userCtxKey).(user.UserID)
 		if !ok {
-			WriteJSONError(w, http.StatusUnauthorized, "unauthorized", "authentication required")
+			WriteJSONError(w, http.StatusUnauthorized, unauthorized, "authentication required")
 			return
 		}
 
