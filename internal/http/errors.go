@@ -11,7 +11,7 @@ const (
 
 	invalidCredentials errorCode = "INVALID_CREDENTIALS"
 	invalidGrant       errorCode = "INVALID_GRANT"
-	validationError errorCode = "VALIDATION_ERROR"
+	validationError    errorCode = "VALIDATION_ERROR"
 
 	emailExists    errorCode = "EMAIL_EXISTS"
 	usernameExists errorCode = "USERNAME_EXISTS"

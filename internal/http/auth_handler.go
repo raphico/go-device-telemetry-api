@@ -8,29 +8,27 @@ import (
 	"time"
 
 	"github.com/raphico/go-device-telemetry-api/internal/config"
+	"github.com/raphico/go-device-telemetry-api/internal/domain/auth"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/token"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
 	"github.com/raphico/go-device-telemetry-api/internal/logger"
 )
 
-type UserHandler struct {
-	log          *logger.Logger
-	cfg          config.Config
-	userService  *user.Service
-	tokenService *token.Service
+type AuthHandler struct {
+	log  *logger.Logger
+	cfg  config.Config
+	auth *auth.Service
 }
 
-func NewUserHandler(
+func NewAuthHandler(
 	log *logger.Logger,
 	cfg config.Config,
-	userService *user.Service,
-	tokenService *token.Service,
-) *UserHandler {
-	return &UserHandler{
-		log:          log,
-		cfg:          cfg,
-		userService:  userService,
-		tokenService: tokenService,
+	authService *auth.Service,
+) *AuthHandler {
+	return &AuthHandler{
+		log:  log,
+		cfg:  cfg,
+		auth: authService,
 	}
 }
 
@@ -46,14 +44,14 @@ type registerUserResponse struct {
 	Email    string `json:"email"`
 }
 
-func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var req registerUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Invalid request body")
 		return
 	}
 
-	u, err := h.userService.RegisterUser(r.Context(), req.Username, req.Email, req.Password)
+	u, err := h.auth.Register(r.Context(), req.Username, req.Email, req.Password)
 	if err != nil {
 		switch {
 		case errors.Is(err, user.ErrEmailInvalid),
@@ -108,34 +106,22 @@ type tokenResponse struct {
 	ExpiresIn   int    `json:"expires_in"`
 }
 
-func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	var req loginUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Invalid request body")
 		return
 	}
 
-	u, err := h.userService.AuthenticateUser(r.Context(), req.Email, req.Password)
+	accessToken, refreshToken, err := h.auth.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, user.ErrInvalidCredentials) {
 			WriteJSONError(w, http.StatusUnauthorized, invalidCredentials, "Invalid credentials")
 			return
 		}
+
 		h.log.Error(fmt.Sprintf("failed to authenticate user: %v", err))
 		WriteInternalError(w)
-		return
-	}
-
-	accessToken, err := h.tokenService.GenerateAccessToken(u.ID)
-	if err != nil {
-		WriteInternalError(w)
-		return
-	}
-
-	refreshToken, err := h.tokenService.CreateRefreshToken(r.Context(), u.ID)
-	if err != nil {
-		WriteInternalError(w)
-		return
 	}
 
 	cookie := &http.Cookie{
@@ -157,7 +143,7 @@ func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, resp, nil)
 }
 
-func (h *UserHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Refresh token missing")
@@ -165,7 +151,7 @@ func (h *UserHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 	}
 
 	refreshTok := cookie.Value
-	accessToken, refreshToken, err := h.tokenService.RotateTokens(r.Context(), refreshTok)
+	accessToken, refreshToken, err := h.auth.Refresh(r.Context(), refreshTok)
 	if err != nil {
 		switch {
 		case errors.Is(err, token.ErrTokenNotFound):
@@ -196,7 +182,7 @@ func (h *UserHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 	WriteJSON(w, http.StatusOK, resp, nil)
 }
 
-func (h *UserHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
 		w.WriteHeader(http.StatusNoContent)
@@ -204,7 +190,7 @@ func (h *UserHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	refreshToken := cookie.Value
-	err = h.tokenService.RevokeRefreshToken(r.Context(), refreshToken)
+	err = h.auth.Logout(r.Context(), refreshToken)
 	if err != nil {
 		switch {
 		case errors.Is(err, token.ErrTokenNotFound):

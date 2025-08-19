@@ -31,7 +31,7 @@ type createDeviceRequest struct {
 }
 
 type createDeviceResponse struct {
-	ID string `json:"id"`
+	ID         string         `json:"id"`
 	Name       string         `json:"name"`
 	DeviceType string         `json:"device_type"`
 	Status     string         `json:"status"`
@@ -77,11 +77,11 @@ func (h *DeviceHandler) HandleCreateDevice(w http.ResponseWriter, r *http.Reques
 	}
 
 	res := createDeviceResponse{
-		ID: d.ID.String(),
-		Name: d.Name.String(),
+		ID:         d.ID.String(),
+		Name:       d.Name.String(),
 		DeviceType: string(d.DeviceType),
-		Status: string(d.Status),
-		Metadata: d.Metadata,
+		Status:     string(d.Status),
+		Metadata:   d.Metadata,
 	}
 
 	WriteJSON(w, http.StatusCreated, res, nil)

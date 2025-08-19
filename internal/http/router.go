@@ -12,7 +12,7 @@ import (
 func NewRouter(
 	log *logger.Logger,
 	userMw *UserMiddleware,
-	userHandler *UserHandler,
+	authHandler *AuthHandler,
 	deviceHandler *DeviceHandler,
 ) http.Handler {
 	r := chi.NewRouter()
@@ -26,15 +26,15 @@ func NewRouter(
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
-			r.Post("/register", userHandler.RegisterUser)
-			r.Post("/login", userHandler.LoginUser)
-			r.Post("/refresh", userHandler.RefreshAccessToken)
+			r.Post("/register", authHandler.RegisterUser)
+			r.Post("/login", authHandler.LoginUser)
+			r.Post("/refresh", authHandler.RefreshAccessToken)
 		})
 
 		r.Group(func(r chi.Router) {
 			r.Use(userMw.RequireAuthMiddleware)
 
-			r.Post("/auth/logout", userHandler.LogoutUser)
+			r.Post("/auth/logout", authHandler.LogoutUser)
 
 			r.Route("/devices", func(r chi.Router) {
 				r.Post("/", deviceHandler.HandleCreateDevice)
