@@ -55,7 +55,7 @@ func (r *UserRepository) Create(ctx context.Context, u *user.User) error {
 	return nil
 }
 
-func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*user.User, error) {
+func (r *UserRepository) FindByEmail(ctx context.Context, email user.Email) (*user.User, error) {
 	var (
 		id                   uuid.UUID
 		emailStr             string
@@ -70,7 +70,7 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*user.U
 		WHERE users.email = $1
 	`
 
-	err := r.db.QueryRow(ctx, query, email).Scan(
+	err := r.db.QueryRow(ctx, query, email.String()).Scan(
 		&id,
 		&emailStr,
 		&usernameStr,
@@ -87,5 +87,5 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*user.U
 		return nil, fmt.Errorf("failed to find user: %w", err)
 	}
 
-	return user.RehydrateUser(id, emailStr, usernameStr, passwordHash, createdAt, updatedAt)
+	return user.RehydrateUser(user.UserID(id), emailStr, usernameStr, passwordHash, createdAt, updatedAt)
 }

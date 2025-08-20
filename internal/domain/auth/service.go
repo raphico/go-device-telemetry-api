@@ -19,12 +19,17 @@ func NewService(userService *user.Service, tokenService *token.Service) *Service
 	}
 }
 
-func (s *Service) Register(ctx context.Context, username, email, password string) (*user.User, error) {
+func (s *Service) Register(
+	ctx context.Context,
+	username user.Username,
+	email user.Email,
+	password user.Password,
+) (*user.User, error) {
 	return s.user.RegisterUser(ctx, username, email, password)
 }
 
-func (s *Service) Login(ctx context.Context, email, password string) (string, *token.Token, error) {
-	u, err := s.user.AuthenticateUser(ctx, email, password)
+func (s *Service) Login(ctx context.Context, email user.Email, rawPassword string) (string, *token.Token, error) {
+	u, err := s.user.AuthenticateUser(ctx, email, rawPassword)
 	if err != nil {
 		return "", nil, err
 	}

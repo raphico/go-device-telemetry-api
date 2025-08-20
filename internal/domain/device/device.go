@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
 )
 
@@ -20,38 +19,29 @@ type Device struct {
 	UpdatedAt  time.Time
 }
 
-func NewDevice(userId user.UserID, name, status, deviceType string, metadata map[string]any) (*Device, error) {
-	n, err := NewName(name)
-	if err != nil {
-		return nil, err
-	}
-
-	s, err := NewStatus(status)
-	if err != nil {
-		return nil, err
-	}
-
-	dt, err := NewDeviceType(deviceType)
-	if err != nil {
-		return nil, err
-	}
-
+func NewDevice(
+	userId user.UserID,
+	name Name,
+	status Status,
+	deviceType DeviceType,
+	metadata map[string]any,
+) *Device {
 	if metadata == nil {
 		metadata = make(map[string]any)
 	}
 
 	return &Device{
 		UserID:     userId,
-		Name:       n,
-		Status:     s,
-		DeviceType: dt,
+		Name:       name,
+		Status:     status,
+		DeviceType: deviceType,
 		Metadata:   metadata,
-	}, nil
+	}
 }
 
 func RehydrateDevice(
-	id uuid.UUID,
-	userID uuid.UUID,
+	id DeviceID,
+	userID user.UserID,
 	name string,
 	deviceType string,
 	status string,
@@ -85,8 +75,8 @@ func RehydrateDevice(
 	}
 
 	return &Device{
-		ID:         DeviceID(id),
-		UserID:     user.UserID(userID),
+		ID:         id,
+		UserID:     userID,
 		Name:       n,
 		Status:     s,
 		DeviceType: dt,

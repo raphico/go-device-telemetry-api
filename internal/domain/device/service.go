@@ -19,21 +19,18 @@ func NewService(repo Repository) *Service {
 func (s *Service) CreateDevice(
 	ctx context.Context,
 	userId user.UserID,
-	name,
-	status,
-	deviceType string,
+	name Name,
+	status Status,
+	deviceType DeviceType,
 	metadata map[string]any,
 ) (*Device, error) {
-	device, err := NewDevice(userId, name, status, deviceType, metadata)
-	if err != nil {
+	dev := NewDevice(userId, name, status, deviceType, metadata)
+
+	if err := s.repo.Create(ctx, dev); err != nil {
 		return nil, err
 	}
 
-	if err = s.repo.Create(ctx, device); err != nil {
-		return nil, err
-	}
-
-	return device, nil
+	return dev, nil
 }
 
 func (s *Service) GetDevice(ctx context.Context, id DeviceID, userId user.UserID) (*Device, error) {

@@ -31,18 +31,15 @@ func validatePassword(pw string) error {
 
 	var (
 		hasMinLen  = len(pw) >= 8
-		hasUpper   bool
-		hasLower   bool
+		hasLetter  bool
 		hasDigit   bool
 		hasSpecial bool
 	)
 
 	for _, c := range pw {
 		switch {
-		case unicode.IsUpper(c):
-			hasUpper = true
-		case unicode.IsLower(c):
-			hasLower = true
+		case unicode.IsLetter(c):
+			hasLetter = true
 		case unicode.IsDigit(c):
 			hasDigit = true
 		case unicode.IsSymbol(c) || unicode.IsPunct(c):
@@ -53,7 +50,7 @@ func validatePassword(pw string) error {
 	if !hasMinLen {
 		return ErrPasswordTooShort
 	}
-	if !hasUpper || !hasLower || !hasDigit || !hasSpecial {
+	if !hasLetter || !hasDigit || !hasSpecial {
 		return ErrPasswordTooWeak
 	}
 

@@ -98,5 +98,15 @@ func (r *DeviceRepository) FindById(ctx context.Context, id device.DeviceID, use
 		return nil, fmt.Errorf("find device by id failed: %w", err)
 	}
 
-	return device.RehydrateDevice(deviceID, userID, name, deviceType, status, metadata, createdAt, updatedAt)
+	return device.RehydrateDevice(
+		device.DeviceID(deviceID),
+		user.UserID(userID),
+		name,
+		deviceType,
+		status,
+		metadata,
+		createdAt,
+		updatedAt,
+	)
+
 }

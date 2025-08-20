@@ -50,7 +50,7 @@ func HashPlaintext(plaintext string) []byte {
 }
 
 func RehydrateToken(
-	id uuid.UUID,
+	id TokenID,
 	hash []byte,
 	userID user.UserID,
 	scope string,
@@ -60,7 +60,7 @@ func RehydrateToken(
 	createdAt time.Time,
 ) *Token {
 	return &Token{
-		ID:         TokenID(id),
+		ID:         id,
 		Hash:       hash,
 		UserID:     userID,
 		Scope:      scope,

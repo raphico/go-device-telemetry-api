@@ -97,7 +97,7 @@ func (r *TokenRepository) FindValidTokenByHash(ctx context.Context, hash []byte,
 		return nil, fmt.Errorf("failed to find token: %w", err)
 	}
 
-	return token.RehydrateToken(id, dbHash, userID, dbScope, revoked, expiresAt, lastUsedAt, createdAt), nil
+	return token.RehydrateToken(token.TokenID(id), dbHash, userID, dbScope, revoked, expiresAt, lastUsedAt, createdAt), nil
 }
 
 func (r *TokenRepository) Revoke(ctx context.Context, scope string, hash []byte) error {

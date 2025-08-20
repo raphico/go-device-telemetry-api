@@ -51,21 +51,24 @@ func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := h.auth.Register(r.Context(), req.Username, req.Email, req.Password)
+	username, err := user.NewUsername(req.Username)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+	}
+
+	email, err := user.NewEmail(req.Email)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+	}
+
+	password, err := user.NewPassword(req.Password)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+	}
+
+	u, err := h.auth.Register(r.Context(), username, email, password)
 	if err != nil {
 		switch {
-		case errors.Is(err, user.ErrUsernameRequired),
-			errors.Is(err, user.ErrUsernameTooShort),
-			errors.Is(err, user.ErrUsernameTooLong),
-			errors.Is(err, user.ErrEmailInvalid),
-			errors.Is(err, user.ErrEmailRequired),
-			errors.Is(err, user.ErrPasswordRequired),
-			errors.Is(err, user.ErrPasswordTooShort),
-			errors.Is(err, user.ErrPasswordTooWeak),
-			errors.Is(err, user.ErrUsernameInvalidChars):
-			WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
-			return
-
 		case errors.Is(err, user.ErrEmailAlreadyExists),
 			errors.Is(err, user.ErrUsernameTaken):
 			WriteJSONError(w, http.StatusConflict, conflict, err.Error())
@@ -104,7 +107,12 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, refreshToken, err := h.auth.Login(r.Context(), req.Email, req.Password)
+	email, err := user.NewEmail(req.Email)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+	}
+
+	accessToken, refreshToken, err := h.auth.Login(r.Context(), email, req.Password)
 	if err != nil {
 		if errors.Is(err, user.ErrInvalidCredentials) {
 			WriteJSONError(w, http.StatusUnauthorized, invalidRequest, "Invalid credentials")

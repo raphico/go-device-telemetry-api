@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
 	"github.com/raphico/go-device-telemetry-api/internal/logger"
@@ -54,19 +53,31 @@ func (h *DeviceHandler) HandleCreateDevice(w http.ResponseWriter, r *http.Reques
 		WriteUnauthorizedError(w)
 	}
 
-	dev, err := h.device.CreateDevice(r.Context(), userId, req.Name, req.Status, req.DeviceType, req.Metadata)
+	name, err := device.NewName(req.Name)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+		return
+	}
+
+	status, err := device.NewStatus(req.Status)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+		return
+	}
+
+	deviceType, err := device.NewDeviceType(req.DeviceType)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+		return
+	}
+
+	if req.Metadata == nil {
+		req.Metadata = make(map[string]any)
+	}
+
+	dev, err := h.device.CreateDevice(r.Context(), userId, name, status, deviceType, req.Metadata)
 	if err != nil {
 		switch {
-		case errors.Is(err, device.ErrNameRequired),
-			errors.Is(err, device.ErrNameTooShort),
-			errors.Is(err, device.ErrNameTooLong),
-			errors.Is(err, device.ErrNameInvalidChars),
-			errors.Is(err, device.ErrInvalidStatus),
-			errors.Is(err, device.ErrInvalidDeviceType),
-			errors.Is(err, device.ErrInvalidMetadata):
-			WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
-			return
-
 		case errors.Is(err, user.ErrUserNotFound):
 			WriteJSONError(w, http.StatusUnauthorized, unauthorized, "User does not exist")
 			return
@@ -90,14 +101,6 @@ func (h *DeviceHandler) HandleCreateDevice(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *DeviceHandler) HandleGetDevice(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "invalid device id")
-		return
-	}
-
 	userId, ok := GetUserID(r.Context())
 	if !ok {
 		h.log.Debug(fmt.Sprint("missing user id in context", "path", r.URL.Path))
@@ -105,7 +108,14 @@ func (h *DeviceHandler) HandleGetDevice(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	dev, err := h.device.GetDevice(r.Context(), device.DeviceID(id), userId)
+	idStr := chi.URLParam(r, "id")
+	id, err := device.NewDeviceID(idStr)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "invalid device id")
+		return
+	}
+
+	dev, err := h.device.GetDevice(r.Context(), id, userId)
 	if err != nil {
 		switch {
 		case errors.Is(err, device.ErrDeviceNotFound):
