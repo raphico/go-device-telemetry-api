@@ -26,18 +26,19 @@ func NewRouter(
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
-			r.Post("/register", authHandler.RegisterUser)
-			r.Post("/login", authHandler.LoginUser)
-			r.Post("/refresh", authHandler.RefreshAccessToken)
+			r.Post("/register", authHandler.HandleRegisterUser)
+			r.Post("/login", authHandler.HandleLoginUser)
+			r.Post("/refresh", authHandler.HandleRefreshAccessToken)
 		})
 
 		r.Group(func(r chi.Router) {
 			r.Use(userMw.RequireAuthMiddleware)
 
-			r.Post("/auth/logout", authHandler.LogoutUser)
+			r.Post("/auth/logout", authHandler.HandleLogoutUser)
 
 			r.Route("/devices", func(r chi.Router) {
 				r.Post("/", deviceHandler.HandleCreateDevice)
+				r.Get("/", deviceHandler.HandleListDevices)
 				r.Get("/{id}", deviceHandler.HandleGetDevice)
 			})
 		})

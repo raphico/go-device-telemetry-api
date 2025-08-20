@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/raphico/go-device-telemetry-api/internal/common/pagination"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
 )
@@ -61,7 +62,11 @@ func (r *DeviceRepository) Create(ctx context.Context, device *device.Device) er
 	return nil
 }
 
-func (r *DeviceRepository) FindById(ctx context.Context, id device.DeviceID, userId user.UserID) (*device.Device, error) {
+func (r *DeviceRepository) FindById(
+	ctx context.Context,
+	id device.DeviceID,
+	userId user.UserID,
+) (*device.Device, error) {
 	var (
 		deviceID   uuid.UUID
 		userID     uuid.UUID
@@ -109,4 +114,100 @@ func (r *DeviceRepository) FindById(ctx context.Context, id device.DeviceID, use
 		updatedAt,
 	)
 
+}
+
+func (r *DeviceRepository) FindDevices(
+	ctx context.Context,
+	userID user.UserID,
+	limit int,
+	cursor *pagination.Cursor,
+) ([]*device.Device, *pagination.Cursor, error) {
+	var (
+		query string
+		args  []any
+	)
+
+	if cursor == nil {
+		query = `
+			SELECT id, user_id, name, device_type, status, metadata, created_at, updated_at
+			FROM devices
+			WHERE user_id = $1
+			ORDER BY created_at ASC, id ASC
+			LIMIT $2
+		`
+		args = []any{userID, limit + 1}
+	} else {
+		query = `
+			SELECT id, user_id, name, device_type, status, metadata, created_at, updated_at
+			FROM devices
+			WHERE user_id = $1
+			  AND (created_at, id) > ($2, $3)
+			ORDER BY created_at ASC, id ASC
+			LIMIT $4
+		`
+		args = []any{userID, cursor.CreatedAt, cursor.ID, limit + 1}
+	}
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("query devices: %w", err)
+	}
+	defer rows.Close()
+
+	var result []*device.Device
+
+	for rows.Next() {
+		var (
+			deviceID   uuid.UUID
+			uID        uuid.UUID
+			name       string
+			deviceType string
+			status     string
+			metadata   []byte
+			createdAt  time.Time
+			updatedAt  time.Time
+		)
+
+		if err := rows.Scan(
+			&deviceID,
+			&uID,
+			&name,
+			&deviceType,
+			&status,
+			&metadata,
+			&createdAt,
+			&updatedAt,
+		); err != nil {
+			return nil, nil, fmt.Errorf("scan device: %w", err)
+		}
+
+		dev, err := device.RehydrateDevice(
+			device.DeviceID(deviceID),
+			user.UserID(uID),
+			name,
+			deviceType,
+			status,
+			metadata,
+			createdAt,
+			updatedAt,
+		)
+		if err != nil {
+			return nil, nil, fmt.Errorf("rehydrate device: %w", err)
+		}
+
+		result = append(result, dev)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	var nextCur *pagination.Cursor
+	if len(result) > limit {
+		lastVisible := result[limit-1]
+		result = result[:limit]
+		nextCur = pagination.NewCursor(uuid.UUID(lastVisible.ID), lastVisible.CreatedAt)
+	}
+
+	return result, nextCur, nil
 }

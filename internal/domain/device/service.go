@@ -3,6 +3,7 @@ package device
 import (
 	"context"
 
+	"github.com/raphico/go-device-telemetry-api/internal/common/pagination"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
 )
 
@@ -40,4 +41,13 @@ func (s *Service) GetDevice(ctx context.Context, id DeviceID, userId user.UserID
 	}
 
 	return device, nil
+}
+
+func (s *Service) ListUserDevices(
+	ctx context.Context,
+	userID user.UserID,
+	limit int,
+	cursor *pagination.Cursor,
+) ([]*Device, *pagination.Cursor, error) {
+	return s.repo.FindDevices(ctx, userID, limit, cursor)
 }

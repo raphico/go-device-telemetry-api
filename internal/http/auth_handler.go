@@ -44,7 +44,7 @@ type registerUserResponse struct {
 	Email    string `json:"email"`
 }
 
-func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request) {
 	var req registerUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Invalid request body")
@@ -100,7 +100,7 @@ type tokenResponse struct {
 	ExpiresIn   int    `json:"expires_in"`
 }
 
-func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) HandleLoginUser(w http.ResponseWriter, r *http.Request) {
 	var req loginUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Invalid request body")
@@ -142,7 +142,7 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, resp, nil)
 }
 
-func (h *AuthHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) HandleRefreshAccessToken(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Refresh token missing")
@@ -181,7 +181,7 @@ func (h *AuthHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 	WriteJSON(w, http.StatusOK, resp, nil)
 }
 
-func (h *AuthHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) HandleLogoutUser(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
 		w.WriteHeader(http.StatusNoContent)

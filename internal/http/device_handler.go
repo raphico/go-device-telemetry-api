@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/raphico/go-device-telemetry-api/internal/common/pagination"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
 	"github.com/raphico/go-device-telemetry-api/internal/logger"
@@ -136,4 +138,68 @@ func (h *DeviceHandler) HandleGetDevice(w http.ResponseWriter, r *http.Request) 
 	}
 
 	WriteJSON(w, http.StatusOK, res, nil)
+}
+
+type listDevicesMeta struct {
+	NextCursor string `json:"next_cursor,omitempty"`
+	Limit      int    `json:"limit"`
+}
+
+func (h *DeviceHandler) HandleListDevices(w http.ResponseWriter, r *http.Request) {
+	userId, ok := GetUserID(r.Context())
+	if !ok {
+		h.log.Debug(fmt.Sprint("missing user id in context", "path", r.URL.Path))
+		WriteUnauthorizedError(w)
+		return
+	}
+
+	limit := pagination.DefaultLimit
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if v, err := strconv.Atoi(limitStr); err != nil {
+			WriteJSONError(w, http.StatusBadRequest, invalidRequest, "limit must be a positive integer")
+			return
+		} else {
+			limit = pagination.ClampLimit(v)
+		}
+	}
+
+	var cur *pagination.Cursor
+	if cstr := r.URL.Query().Get("cursor"); cstr != "" {
+		if decoded, err := pagination.Decode(cstr); err != nil {
+			WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+			return
+		} else {
+			cur = &decoded
+		}
+	}
+
+	devs, next, err := h.device.ListUserDevices(r.Context(), userId, limit, cur)
+	if err != nil {
+		WriteInternalError(w)
+		return
+	}
+
+	out := make([]deviceResponse, 0, len(devs))
+	for _, d := range devs {
+		out = append(out, deviceResponse{
+			ID:         d.ID.String(),
+			Name:       d.Name.String(),
+			DeviceType: string(d.DeviceType),
+			Status:     string(d.Status),
+			Metadata:   d.Metadata,
+		})
+	}
+
+	var nextStr string
+	if next != nil {
+		s := pagination.Encode(*next)
+		nextStr = s
+	}
+
+	meta := listDevicesMeta{
+		NextCursor: nextStr,
+		Limit:      limit,
+	}
+
+	WriteJSON(w, http.StatusOK, out, meta)
 }

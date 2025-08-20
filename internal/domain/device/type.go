@@ -6,12 +6,14 @@ const (
 	DeviceTypeTemperatureSensor DeviceType = "temperature_sensor"
 	DeviceTypeHumiditySensor    DeviceType = "humidity_sensor"
 	DeviceTypeMotionSensor      DeviceType = "motion_sensor"
+	DeviceTypeSecurityCamera    DeviceType = "security_camera"
 )
 
 var validDeviceTypes = map[DeviceType]struct{}{
 	DeviceTypeTemperatureSensor: {},
 	DeviceTypeHumiditySensor:    {},
 	DeviceTypeMotionSensor:      {},
+	DeviceTypeSecurityCamera:    {},
 }
 
 func NewDeviceType(value string) (DeviceType, error) {
