@@ -38,6 +38,7 @@ func NewRouter(
 
 			r.Route("/devices", func(r chi.Router) {
 				r.Post("/", deviceHandler.HandleCreateDevice)
+				r.Get("/{id}", deviceHandler.HandleGetDevice)
 			})
 		})
 

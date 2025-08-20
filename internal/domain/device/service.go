@@ -35,3 +35,12 @@ func (s *Service) CreateDevice(
 
 	return device, nil
 }
+
+func (s *Service) GetDevice(ctx context.Context, id DeviceID, userId user.UserID) (*Device, error) {
+	device, err := s.repo.FindById(ctx, id, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	return device, nil
+}

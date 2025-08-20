@@ -6,20 +6,22 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
 	"github.com/raphico/go-device-telemetry-api/internal/logger"
 )
 
 type DeviceHandler struct {
-	log     *logger.Logger
-	service *device.Service
+	log    *logger.Logger
+	device *device.Service
 }
 
 func NewDeviceHandler(log *logger.Logger, deviceService *device.Service) *DeviceHandler {
 	return &DeviceHandler{
-		log:     log,
-		service: deviceService,
+		log:    log,
+		device: deviceService,
 	}
 }
 
@@ -30,7 +32,7 @@ type createDeviceRequest struct {
 	Metadata   map[string]any `json:"metadata"`
 }
 
-type createDeviceResponse struct {
+type deviceResponse struct {
 	ID         string         `json:"id"`
 	Name       string         `json:"name"`
 	DeviceType string         `json:"device_type"`
@@ -52,7 +54,7 @@ func (h *DeviceHandler) HandleCreateDevice(w http.ResponseWriter, r *http.Reques
 		WriteUnauthorizedError(w)
 	}
 
-	d, err := h.service.CreateDevice(r.Context(), userId, req.Name, req.Status, req.DeviceType, req.Metadata)
+	dev, err := h.device.CreateDevice(r.Context(), userId, req.Name, req.Status, req.DeviceType, req.Metadata)
 	if err != nil {
 		switch {
 		case errors.Is(err, device.ErrNameRequired),
@@ -76,17 +78,52 @@ func (h *DeviceHandler) HandleCreateDevice(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	res := createDeviceResponse{
-		ID:         d.ID.String(),
-		Name:       d.Name.String(),
-		DeviceType: string(d.DeviceType),
-		Status:     string(d.Status),
-		Metadata:   d.Metadata,
+	res := deviceResponse{
+		ID:         dev.ID.String(),
+		Name:       dev.Name.String(),
+		DeviceType: string(dev.DeviceType),
+		Status:     string(dev.Status),
+		Metadata:   dev.Metadata,
 	}
 
 	WriteJSON(w, http.StatusCreated, res, nil)
 }
 
-func (h *DeviceHandler) HandleGetDeviceById(w http.ResponseWriter, r *http.Request) {
+func (h *DeviceHandler) HandleGetDevice(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
 
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "invalid device id")
+		return
+	}
+
+	userId, ok := GetUserID(r.Context())
+	if !ok {
+		h.log.Debug(fmt.Sprint("missing user id in context", "path", r.URL.Path))
+		WriteUnauthorizedError(w)
+		return
+	}
+
+	dev, err := h.device.GetDevice(r.Context(), device.DeviceID(id), userId)
+	if err != nil {
+		switch {
+		case errors.Is(err, device.ErrDeviceNotFound):
+			WriteJSONError(w, http.StatusBadRequest, invalidRequest, "device not found")
+		default:
+			h.log.Error(fmt.Sprintf("failed to get device: %v", err))
+			WriteInternalError(w)
+		}
+		return
+	}
+
+	res := deviceResponse{
+		ID:         dev.ID.String(),
+		Name:       dev.Name.String(),
+		DeviceType: string(dev.DeviceType),
+		Status:     string(dev.Status),
+		Metadata:   dev.Metadata,
+	}
+
+	WriteJSON(w, http.StatusOK, res, nil)
 }

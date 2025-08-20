@@ -3,6 +3,7 @@ package device
 import "errors"
 
 var (
+	ErrDeviceNotFound    = errors.New("device not found")
 	ErrNameRequired      = errors.New("device name is required")
 	ErrNameTooShort      = errors.New("device name must be at least 3 characters")
 	ErrNameTooLong       = errors.New("device name must be at most 50 characters")

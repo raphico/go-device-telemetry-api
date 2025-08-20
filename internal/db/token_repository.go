@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -60,7 +61,7 @@ func (r *TokenRepository) Create(ctx context.Context, t *token.Token) error {
 
 func (r *TokenRepository) FindValidTokenByHash(ctx context.Context, hash []byte, scope string) (*token.Token, error) {
 	var (
-		id         token.TokenID
+		id         uuid.UUID
 		dbHash     []byte
 		userID     user.UserID
 		dbScope    string

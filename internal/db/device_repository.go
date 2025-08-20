@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
@@ -56,4 +59,44 @@ func (r *DeviceRepository) Create(ctx context.Context, device *device.Device) er
 	}
 
 	return nil
+}
+
+func (r *DeviceRepository) FindById(ctx context.Context, id device.DeviceID, userId user.UserID) (*device.Device, error) {
+	var (
+		deviceID   uuid.UUID
+		userID     uuid.UUID
+		name       string
+		deviceType string
+		status     string
+		metadata   []byte
+		createdAt  time.Time
+		updatedAt  time.Time
+	)
+
+	query := `
+		SELECT id, user_id, name, device_type, status, metadata, created_at, updated_at
+		FROM devices
+		WHERE id = $1 AND user_id = $2
+	`
+
+	err := r.db.QueryRow(ctx, query, id, userId).Scan(
+		&deviceID,
+		&userID,
+		&name,
+		&deviceType,
+		&status,
+		&metadata,
+		&createdAt,
+		&updatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, device.ErrDeviceNotFound
+		}
+
+		return nil, fmt.Errorf("find device by id failed: %w", err)
+	}
+
+	return device.RehydrateDevice(deviceID, userID, name, deviceType, status, metadata, createdAt, updatedAt)
 }
