@@ -65,11 +65,11 @@ func (r *DeviceRepository) Create(ctx context.Context, dev *device.Device) error
 func (r *DeviceRepository) FindById(
 	ctx context.Context,
 	id device.DeviceID,
-	userId user.UserID,
+	userID user.UserID,
 ) (*device.Device, error) {
 	var (
 		deviceID   uuid.UUID
-		userID     uuid.UUID
+		dbUserID     uuid.UUID
 		name       string
 		deviceType string
 		status     string
@@ -84,7 +84,7 @@ func (r *DeviceRepository) FindById(
 		WHERE id = $1 AND user_id = $2
 	`
 
-	err := r.db.QueryRow(ctx, query, id, userId).Scan(
+	err := r.db.QueryRow(ctx, query, id, dbUserID).Scan(
 		&deviceID,
 		&userID,
 		&name,
@@ -100,7 +100,7 @@ func (r *DeviceRepository) FindById(
 			return nil, device.ErrDeviceNotFound
 		}
 
-		return nil, fmt.Errorf("find device by id failed: %w", err)
+		return nil, fmt.Errorf("failed to find device by id: %w", err)
 	}
 
 	return device.RehydrateDevice(

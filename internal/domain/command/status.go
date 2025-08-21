@@ -28,3 +28,12 @@ func NewStatus(value string) (Status, error) {
 func (s Status) String() string {
 	return s.value
 }
+
+func (s *Status) SetStatus(value string) error {
+	status, err := NewStatus(value)
+	if err != nil {
+		return err
+	}
+	*s = status
+	return nil
+}

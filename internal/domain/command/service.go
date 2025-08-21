@@ -21,14 +21,14 @@ func (s *Service) CreateCommand(
 	name Name,
 	payload Payload,
 ) (*Command, error) {
-	command := NewCommand(deviceID, name, payload)
+	cmd := NewCommand(deviceID, name, payload)
 
-	err := s.repo.Create(ctx, command)
+	err := s.repo.Create(ctx, cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	return command, nil
+	return cmd, nil
 }
 
 func (s *Service) ListDeviceCommands(
@@ -38,4 +38,27 @@ func (s *Service) ListDeviceCommands(
 	cursor *pagination.Cursor,
 ) ([]*Command, *pagination.Cursor, error) {
 	return s.repo.FindCommands(ctx, deviceID, limit, cursor)
+}
+
+func (s *Service) UpdateCommandStatus(
+	ctx context.Context, 
+	id CommandID,
+	deviceID device.DeviceID,
+	status Status,
+	executedAt ExecutedAt,	
+) (*Command, error) {
+	cmd, err := s.repo.FindById(ctx, id, deviceID)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.UpdateStatus(status)
+	cmd.UpdateExecutedAt(executedAt)
+
+	err = s.repo.UpdateStatus(ctx, cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	return cmd, nil
 }

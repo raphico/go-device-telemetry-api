@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/raphico/go-device-telemetry-api/internal/common/pagination"
@@ -54,7 +55,7 @@ func (r *CommandRepository) Create(ctx context.Context, c *command.Command) erro
 		return fmt.Errorf("failed to insert command: %w", err)
 	}
 
-	if err := c.UpdateStatus(status); err != nil {
+	if err := c.Status.SetStatus(status); err != nil {
 		return fmt.Errorf("corrupt status: %w", err)
 	}
 
@@ -140,4 +141,85 @@ func (r *CommandRepository) FindCommands(
 	}
 
 	return result, nextCur, nil
+}
+
+func (r *CommandRepository) FindById(
+	ctx context.Context,
+	id command.CommandID,
+	deviceID device.DeviceID,
+) (*command.Command, error) {
+	var (
+		commandID   uuid.UUID
+		dbDeviceID    uuid.UUID
+		commandName string
+		payload     []byte
+		status      string
+		executedAt  *time.Time
+		createdAt   time.Time
+	)
+
+	query := `
+    	SELECT id, device_id, command_name, payload, status, executed_at, created_at
+		FROM commands
+		WHERE id = $1 AND device_id = $2
+	`
+
+	err := r.db.QueryRow(ctx, query, id, deviceID).Scan(
+		&commandID,
+		&dbDeviceID,
+		&commandName,
+		&payload,
+		&status,
+		&executedAt,
+		&createdAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, command.ErrCommandNotFound
+		}
+
+		return nil, fmt.Errorf("failed to find command by id: %w", err)
+	}
+
+	return command.RehydrateCommand(
+		commandID,
+		dbDeviceID,
+		commandName,
+		payload,
+		status,
+		executedAt,
+		createdAt,
+	)
+}
+
+func (r *CommandRepository) UpdateStatus(ctx context.Context, c *command.Command) error {
+	if !c.ExecutedAt.Valid() {
+		return fmt.Errorf("invalid executed_at")
+	}
+
+	query := `
+		UPDATE commands
+		SET status = $1, executed_at = $2
+		WHERE id = $3 AND device_id = $4
+	`
+
+	tag, err := r.db.Exec(
+		ctx,
+		query,
+		c.Status.String(),
+		c.ExecutedAt.Time(),
+		c.ID,
+		c.DeviceID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to update command: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return command.ErrCommandNotFound
+	}
+
+	return nil
 }

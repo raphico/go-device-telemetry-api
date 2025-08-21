@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/raphico/go-device-telemetry-api/internal/common/pagination"
@@ -32,10 +33,11 @@ type createCommandRequest struct {
 }
 
 type commandResponse struct {
-	ID          string `json:"id"`
-	CommandName string `json:"command_name"`
-	Payload     any    `json:"payload"`
-	Status      string `json:"status"`
+	ID          string    `json:"id"`
+	CommandName string    `json:"command_name"`
+	Payload     any       `json:"payload"`
+	Status      string    `json:"status"`
+	ExecutedAt  time.Time `json:"executed_at,omitzero"`
 }
 
 func (h *CommandHandler) HandleCreateCommand(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +66,7 @@ func (h *CommandHandler) HandleCreateCommand(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	c, err := h.command.CreateCommand(r.Context(), deviceID, commandName, payload)
+	cmd, err := h.command.CreateCommand(r.Context(), deviceID, commandName, payload)
 	if err != nil {
 		switch {
 		case errors.Is(err, device.ErrDeviceNotFound):
@@ -77,10 +79,14 @@ func (h *CommandHandler) HandleCreateCommand(w http.ResponseWriter, r *http.Requ
 	}
 
 	res := commandResponse{
-		ID:          c.ID.String(),
-		CommandName: c.Name.String(),
-		Payload:     c.Payload,
-		Status:      c.Status.String(),
+		ID:          cmd.ID.String(),
+		CommandName: cmd.Name.String(),
+		Payload:     cmd.Payload,
+		Status:      cmd.Status.String(),
+	}
+
+	if cmd.ExecutedAt.Valid() {
+		res.ExecutedAt = cmd.ExecutedAt.Time()
 	}
 
 	WriteJSON(w, http.StatusCreated, res, nil)
@@ -123,12 +129,16 @@ func (h *CommandHandler) HandleGetDeviceCommands(w http.ResponseWriter, r *http.
 
 	out := make([]commandResponse, 0, len(commands))
 	for _, c := range commands {
-		out = append(out, commandResponse{
+		cmd := commandResponse{
 			ID:          c.ID.String(),
 			CommandName: c.Name.String(),
 			Payload:     c.Payload,
 			Status:      c.Status.String(),
-		})
+		}
+		if c.ExecutedAt.Valid() {
+			cmd.ExecutedAt = c.ExecutedAt.Time()
+		}
+		out = append(out, cmd)
 	}
 
 	var nextStr string
@@ -142,4 +152,70 @@ func (h *CommandHandler) HandleGetDeviceCommands(w http.ResponseWriter, r *http.
 	}
 
 	WriteJSON(w, http.StatusOK, out, meta)
+}
+
+
+type updateCommandStatusRequest struct {
+	Status      string    `json:"status"`
+	ExecutedAt  string `json:"executed_at"`
+}
+
+func (h *CommandHandler) HandleUpdateCommandStatus(w http.ResponseWriter, r *http.Request) {
+	deviceIDStr := chi.URLParam(r, "device_id")
+	deviceID, err := device.NewDeviceID(deviceIDStr)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "invalid device id")
+		return
+	}
+
+	commandIDStr := chi.URLParam(r, "command_id")
+	commandID, err := command.NewCommandID(commandIDStr)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "invalid command id")
+		return
+	}
+
+
+	var req updateCommandStatusRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Invalid request body")
+		return
+	}
+
+	status, err := command.NewStatus(req.Status)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+		return
+	}
+	
+	executedAt, err := command.NewExecutedAt(req.ExecutedAt)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+		return
+	}
+
+	cmd, err := h.command.UpdateCommandStatus(r.Context(), commandID, deviceID, status, executedAt)
+	if err != nil {
+		switch {
+		case errors.Is(err, command.ErrCommandNotFound):
+			WriteJSONError(w, http.StatusNotFound, notfound, "command not found")
+		default:
+			h.log.Error(fmt.Sprintf("failed to update command: %v", err))
+			WriteInternalError(w)
+		}
+		return
+	}
+
+	res := commandResponse{
+		ID:          cmd.ID.String(),
+		CommandName: cmd.Name.String(),
+		Payload:     cmd.Payload,
+		Status:      cmd.Status.String(),
+	}
+
+	if cmd.ExecutedAt.Valid() {
+		res.ExecutedAt = cmd.ExecutedAt.Time()
+	}
+
+	WriteJSON(w, http.StatusCreated, res, nil)
 }

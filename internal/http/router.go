@@ -52,6 +52,8 @@ func NewRouter(
 				r.Route("/{device_id}/commands", func(r chi.Router) {
 					r.Post("/", commandHandler.HandleCreateCommand)
 					r.Get("/", commandHandler.HandleGetDeviceCommands)
+
+					r.Patch("/{command_id}", commandHandler.HandleUpdateCommandStatus)
 				})
 			})
 		})

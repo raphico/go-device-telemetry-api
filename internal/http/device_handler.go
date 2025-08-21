@@ -266,7 +266,7 @@ func (h *DeviceHandler) HandleUpdateDevice(w http.ResponseWriter, r *http.Reques
 		case errors.Is(err, device.ErrDeviceNotFound):
 			WriteJSONError(w, http.StatusNotFound, notfound, "device not found")
 		default:
-			h.log.Error(fmt.Sprintf("failed to get device: %v", err))
+			h.log.Error(fmt.Sprintf("failed to update device: %v", err))
 			WriteInternalError(w)
 		}
 		return

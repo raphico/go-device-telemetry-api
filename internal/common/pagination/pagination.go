@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	DefaultLimit = 2
+	DefaultLimit = 10
 	MaxLimit     = 10
 )
 

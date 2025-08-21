@@ -15,7 +15,7 @@ type Command struct {
 	Name       Name
 	Payload    Payload
 	Status     Status
-	ExecutedAt *time.Time
+	ExecutedAt ExecutedAt
 	CreatedAt  time.Time
 }
 
@@ -31,13 +31,12 @@ func NewCommand(
 	}
 }
 
-func (c *Command) UpdateStatus(value string) error {
-	status, err := NewStatus(value)
-	if err != nil {
-		return err
-	}
+func (c *Command) UpdateStatus(status Status) {
 	c.Status = status
-	return nil
+}
+
+func (c *Command) UpdateExecutedAt(executedAt ExecutedAt) {
+	c.ExecutedAt = executedAt
 }
 
 func RehydrateCommand(
@@ -64,13 +63,24 @@ func RehydrateCommand(
 		return nil, fmt.Errorf("corrupt status: %w", err)
 	}
 
+	var execAt ExecutedAt
+	if executedAt != nil {
+		e, err := ExecutedAtFromTime(*executedAt)
+		if err != nil {
+			return nil, fmt.Errorf("corrupt executed_at: %w", err)
+		}
+		execAt = e
+	} else {
+		execAt = ExecutedAt{valid: false}
+	}
+
 	return &Command{
 		ID:         CommandID(id),
 		DeviceID:   device.DeviceID(deviceID),
 		Name:       n,
 		Payload:    payload,
 		Status:     s,
-		ExecutedAt: executedAt,
+		ExecutedAt: execAt,
 		CreatedAt:  createdAt,
 	}, nil
 }

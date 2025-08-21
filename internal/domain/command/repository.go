@@ -15,4 +15,10 @@ type Repository interface {
 		limit int,
 		cursor *pagination.Cursor,
 	) ([]*Command, *pagination.Cursor, error)
+	FindById(
+		ctx context.Context,
+		id CommandID,
+		deviceID device.DeviceID,
+	) (*Command, error)
+	UpdateStatus(ctx context.Context, c *Command) error
 }
