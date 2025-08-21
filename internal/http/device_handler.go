@@ -245,7 +245,7 @@ func (h *DeviceHandler) HandleUpdateDevice(w http.ResponseWriter, r *http.Reques
 		}
 		update.Name = &n
 	}
-	
+
 	if req.DeviceType != "" {
 		dt, err := device.NewDeviceType(req.DeviceType)
 		if err != nil {
