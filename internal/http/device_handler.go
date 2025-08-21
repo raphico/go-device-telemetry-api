@@ -96,7 +96,7 @@ func (h *DeviceHandler) HandleCreateDevice(w http.ResponseWriter, r *http.Reques
 		ID:         dev.ID.String(),
 		Name:       dev.Name.String(),
 		DeviceType: dev.DeviceType.String(),
-		Status:     string(dev.Status),
+		Status:     dev.Status.String(),
 		Metadata:   dev.Metadata,
 	}
 
@@ -134,7 +134,7 @@ func (h *DeviceHandler) HandleGetDevice(w http.ResponseWriter, r *http.Request) 
 		ID:         dev.ID.String(),
 		Name:       dev.Name.String(),
 		DeviceType: dev.DeviceType.String(),
-		Status:     string(dev.Status),
+		Status:     dev.Status.String(),
 		Metadata:   dev.Metadata,
 	}
 
@@ -186,7 +186,7 @@ func (h *DeviceHandler) HandleListDevices(w http.ResponseWriter, r *http.Request
 			ID:         d.ID.String(),
 			Name:       d.Name.String(),
 			DeviceType: d.DeviceType.String(),
-			Status:     string(d.Status),
+			Status:     d.Status.String(),
 			Metadata:   d.Metadata,
 		})
 	}
@@ -281,7 +281,7 @@ func (h *DeviceHandler) HandleUpdateDevice(w http.ResponseWriter, r *http.Reques
 		ID:         dev.ID.String(),
 		Name:       dev.Name.String(),
 		DeviceType: dev.DeviceType.String(),
-		Status:     string(dev.Status),
+		Status:     dev.Status.String(),
 		Metadata:   dev.Metadata,
 	}
 

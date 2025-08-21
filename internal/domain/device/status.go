@@ -1,21 +1,27 @@
 package device
 
-import "errors"
+import "fmt"
 
-type Status string
+type Status struct {
+	value string
+}
 
-const (
-	StatusOffline Status = "offline"
-	StatusOnline  Status = "online"
+var (
+	StatusOffline = Status{"offline"}
+	StatusOnline  = Status{"online"}
 )
 
 func NewStatus(value string) (Status, error) {
 	switch value {
-	case string(StatusOffline):
+	case StatusOffline.value:
 		return StatusOffline, nil
-	case string(StatusOnline):
+	case StatusOnline.value:
 		return StatusOnline, nil
 	default:
-		return "", errors.New("device status must be either 'offline' or 'online'")
+		return Status{}, fmt.Errorf("invalid device status: %s", value)
 	}
+}
+
+func (s Status) String() string {
+	return s.value
 }
