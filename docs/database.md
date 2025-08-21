@@ -66,13 +66,14 @@ Tracks user devices, type, status, and optional metadata.
 
 Stores sensor readings from devices. Flexible using JSONB.
 
-| Column      | Type      | Notes                     |
-| ----------- | --------- | ------------------------- |
-| id          | UUID      | Primary Key               |
-| device_id   | UUID      | Foreign Key → Devices(id) |
-| type        | VARCHAR   | E.g., environment, motion |
-| payload     | JSONB     | Sensor readings, flexible |
-| recorded_at | TIMESTAMP | Timestamp of reading      |
+| Column         | Type      | Notes                                       |
+| -------------- | --------- | ------------------------------------------- |
+| id             | UUID      | Primary Key                                 |
+| device_id      | UUID      | Foreign Key → Devices(id)                   |
+| telemetry_type | VARCHAR   | E.g., environment, motion                   |
+| payload        | JSONB     | Sensor readings, flexible                   |
+| recorded_at    | TIMESTAMP | Timestamp of reading                        |
+| created_at     | TIMESTAMP | Timestamp the database stored the telemetry |
 
 **Example:**
 
@@ -80,13 +81,14 @@ Stores sensor readings from devices. Flexible using JSONB.
 {
   "id": "uuid-9012",
   "device_id": "uuid-5678",
-  "data_type": "environment",
-  "value": {
+  "telemetry_type": "environment",
+  "payload": {
     "temperature": 24.5,
     "humidity": 48.2,
     "light": 300
   },
-  "recorded_at": "2025-08-14T12:10:00Z"
+  "recorded_at": "2025-08-14T12:10:00Z",
+  "created_at": "2025-08-14T12:10:00Z"
 }
 ```
 
@@ -110,12 +112,12 @@ Stores commands issued to devices with flexible payloads.
 {
   "id": "uuid-3456",
   "device_id": "uuid-5678",
-  "command": "set_threshold",
+  "command_name": "set_threshold",
   "payload": {
     "temperature": 25.0,
     "humidity": 50.0
   },
-  "status": "Pending",
+  "status": "pending",
   "created_at": "2025-08-14T12:15:00Z",
   "executed_at": null
 }
