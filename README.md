@@ -6,6 +6,7 @@ A backend service built using DDD(Domain Driven Design) with **Go** for managing
 
 - [Project Motivation](./docs/motivation.md)
 - [Database Design](./docs/database.md)
+- [API Documentation](./docs/api.md)
 
 ## Features
 
