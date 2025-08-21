@@ -121,7 +121,7 @@ func (h *DeviceHandler) HandleGetDevice(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		switch {
 		case errors.Is(err, device.ErrDeviceNotFound):
-			WriteJSONError(w, http.StatusBadRequest, invalidRequest, "device not found")
+			WriteJSONError(w, http.StatusNotFound, notfound, "device not found")
 		default:
 			h.log.Error(fmt.Sprintf("failed to get device: %v", err))
 			WriteInternalError(w)
@@ -202,4 +202,82 @@ func (h *DeviceHandler) HandleListDevices(w http.ResponseWriter, r *http.Request
 	}
 
 	WriteJSON(w, http.StatusOK, out, meta)
+}
+
+type updateDeviceRequest struct {
+	Name       string         `json:"name"`
+	DeviceType string         `json:"device_type"`
+	Metadata   map[string]any `json:"metadata"`
+}
+
+func (h *DeviceHandler) HandleUpdateDevice(w http.ResponseWriter, r *http.Request) {
+	userId, ok := GetUserID(r.Context())
+	if !ok {
+		h.log.Debug(fmt.Sprint("missing user id in context", "path", r.URL.Path))
+		WriteUnauthorizedError(w)
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	id, err := device.NewDeviceID(idStr)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "invalid device id")
+		return
+	}
+
+	var req updateDeviceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Invalid request body")
+		return
+	}
+
+	if req.Name == "" && req.DeviceType == "" && req.Metadata == nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "at least one field must be provided")
+		return
+	}
+
+	update := device.UpdateDeviceInput{}
+	if req.Name != "" {
+		n, err := device.NewName(req.Name)
+		if err != nil {
+			WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+			return
+		}
+		update.Name = &n
+	}
+	
+	if req.DeviceType != "" {
+		dt, err := device.NewDeviceType(req.DeviceType)
+		if err != nil {
+			WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+			return
+		}
+		update.DeviceType = &dt
+	}
+
+	if req.Metadata != nil {
+		update.Metadata = &req.Metadata
+	}
+
+	dev, err := h.device.UpdateDevice(r.Context(), id, userId, update)
+	if err != nil {
+		switch {
+		case errors.Is(err, device.ErrDeviceNotFound):
+			WriteJSONError(w, http.StatusNotFound, notfound, "device not found")
+		default:
+			h.log.Error(fmt.Sprintf("failed to get device: %v", err))
+			WriteInternalError(w)
+		}
+		return
+	}
+
+	res := deviceResponse{
+		ID:         dev.ID.String(),
+		Name:       dev.Name.String(),
+		DeviceType: string(dev.DeviceType),
+		Status:     string(dev.Status),
+		Metadata:   dev.Metadata,
+	}
+
+	WriteJSON(w, http.StatusOK, res, nil)
 }

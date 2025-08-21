@@ -39,6 +39,18 @@ func NewDevice(
 	}
 }
 
+func (d *Device) UpdateName(n Name) {
+	d.Name = n
+}
+
+func (d *Device) UpdateDeviceType(dt DeviceType) {
+	d.DeviceType = dt
+}
+
+func (d *Device) UpdateMetadata(m map[string]any) {
+	d.Metadata = m
+}
+
 func RehydrateDevice(
 	id DeviceID,
 	userID user.UserID,

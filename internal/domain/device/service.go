@@ -11,6 +11,12 @@ type Service struct {
 	repo Repository
 }
 
+type UpdateDeviceInput struct {
+	Name       *Name
+	DeviceType *DeviceType
+	Metadata   *map[string]any
+}
+
 func NewService(repo Repository) *Service {
 	return &Service{
 		repo: repo,
@@ -50,4 +56,35 @@ func (s *Service) ListUserDevices(
 	cursor *pagination.Cursor,
 ) ([]*Device, *pagination.Cursor, error) {
 	return s.repo.FindDevices(ctx, userID, limit, cursor)
+}
+
+func (s *Service) UpdateDevice(
+	ctx context.Context,
+	id DeviceID,
+	userId user.UserID,
+	update UpdateDeviceInput,
+) (*Device, error) {
+	dev, err := s.repo.FindById(ctx, id, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	if update.DeviceType != nil {
+		dev.UpdateDeviceType(*update.DeviceType)
+	}
+
+	if update.Metadata != nil {
+		dev.UpdateMetadata(*update.Metadata)
+	}
+
+	if update.Name != nil {
+		dev.UpdateName(*update.Name)
+	}
+
+	err = s.repo.Update(ctx, dev)
+	if err != nil {
+		return nil, err
+	}
+
+	return dev, nil
 }

@@ -40,6 +40,7 @@ func NewRouter(
 				r.Post("/", deviceHandler.HandleCreateDevice)
 				r.Get("/", deviceHandler.HandleListDevices)
 				r.Get("/{id}", deviceHandler.HandleGetDevice)
+				r.Post("/{id}", deviceHandler.HandleUpdateDevice)
 			})
 		})
 

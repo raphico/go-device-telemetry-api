@@ -11,4 +11,5 @@ type Repository interface {
 	Create(ctx context.Context, device *Device) error
 	FindById(ctx context.Context, id DeviceID, userId user.UserID) (*Device, error)
 	FindDevices(ctx context.Context, userId user.UserID, limit int, cursor *pagination.Cursor) ([]*Device, *pagination.Cursor, error)
+	Update(ctx context.Context, dev *Device) error
 }

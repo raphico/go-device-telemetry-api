@@ -26,8 +26,8 @@ func NewDeviceRepository(db *pgxpool.Pool) *DeviceRepository {
 	}
 }
 
-func (r *DeviceRepository) Create(ctx context.Context, device *device.Device) error {
-	jsonMetadata, err := json.Marshal(device.Metadata)
+func (r *DeviceRepository) Create(ctx context.Context, dev *device.Device) error {
+	jsonMetadata, err := json.Marshal(dev.Metadata)
 	if err != nil {
 		return fmt.Errorf("failed to marshal metadata: %w", err)
 	}
@@ -41,12 +41,12 @@ func (r *DeviceRepository) Create(ctx context.Context, device *device.Device) er
 	err = r.db.QueryRow(
 		ctx,
 		query,
-		device.UserID,
-		device.Name,
-		device.DeviceType,
-		device.Status,
+		dev.UserID,
+		dev.Name,
+		dev.DeviceType,
+		dev.Status,
 		jsonMetadata,
-	).Scan(&device.ID, &device.CreatedAt, &device.UpdatedAt)
+	).Scan(&dev.ID, &dev.CreatedAt, &dev.UpdatedAt)
 
 	if err != nil {
 		var pgError *pgconn.PgError
@@ -210,4 +210,23 @@ func (r *DeviceRepository) FindDevices(
 	}
 
 	return result, nextCur, nil
+}
+
+func (r *DeviceRepository) Update(ctx context.Context, dev *device.Device) error {
+	query := `
+		UPDATE devices
+        SET name = $1, device_type = $2, metadata = $3, updated_at = NOW()
+        WHERE id = $4 AND user_id = $5	
+	`
+
+	tag, err := r.db.Exec(ctx, query, dev.Name, dev.DeviceType, dev.Metadata, dev.ID, dev.UserID)
+	if err != nil {
+		return fmt.Errorf("failed to update device: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return device.ErrDeviceNotFound
+	}
+
+	return nil
 }
