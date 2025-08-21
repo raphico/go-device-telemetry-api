@@ -30,6 +30,20 @@ func NewRecordedAt(raw string) (RecordedAt, error) {
 	return RecordedAt{value: t.UTC()}, nil
 }
 
+func RecordedAtFromTime(t time.Time) (RecordedAt, error) {
+	now := time.Now().UTC()
+
+	if t.IsZero() {
+		return RecordedAt{}, errors.New("invalid recorded_at")
+	}
+
+	if t.After(now.Add(5 * time.Minute)) { // reject suspicious future values
+		return RecordedAt{}, errors.New("telemetry recorded_at cannot be in the future")
+	}
+
+	return RecordedAt{value: t.UTC()}, nil
+}
+
 func (r RecordedAt) Time() time.Time {
 	return r.value
 }

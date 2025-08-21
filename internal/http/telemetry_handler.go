@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/raphico/go-device-telemetry-api/internal/common/pagination"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/telemetry"
 	"github.com/raphico/go-device-telemetry-api/internal/logger"
@@ -90,4 +92,67 @@ func (h *TelemetryHandler) HandleCreateTelemetry(w http.ResponseWriter, r *http.
 	}
 
 	WriteJSON(w, http.StatusCreated, res, nil)
+}
+
+type getDeviceTelemetryMeta struct {
+	NextCursor string `json:"next_cursor,omitempty"`
+	Limit      int    `json:"limit"`
+}
+
+func (h *TelemetryHandler) HandleGetDeviceTelemetry(w http.ResponseWriter, r *http.Request) {
+	deviceIDStr := chi.URLParam(r, "device_id")
+	deviceID, err := device.NewDeviceID(deviceIDStr)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "invalid device id")
+		return
+	}
+
+	limit := pagination.DefaultLimit
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if v, err := strconv.Atoi(limitStr); err != nil || v < 0 {
+			WriteJSONError(w, http.StatusBadRequest, invalidRequest, "limit must be a positive integer")
+			return
+		} else {
+			limit = pagination.ClampLimit(v)
+		}
+	}
+
+	var cur *pagination.Cursor
+	if cstr := r.URL.Query().Get("cursor"); cstr != "" {
+		if decoded, err := pagination.Decode(cstr); err != nil {
+			WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+			return
+		} else {
+			cur = &decoded
+		}
+	}
+
+	telemetry, next, err := h.telemetry.ListDeviceTelemetry(r.Context(), deviceID, limit, cur)
+	if err != nil {
+		h.log.Error(fmt.Sprintf("failed to get device telemetry: %v", err))
+		WriteInternalError(w)
+		return
+	}
+
+	out := make([]telemetryResponse, 0, len(telemetry))
+	for _, t := range telemetry {
+		out = append(out, telemetryResponse{
+			ID:            t.ID.String(),
+			TelemetryType: t.TelemetryType.String(),
+			Payload:       t.Payload,
+			RecordedAt:    t.RecordedAt.Time(),
+		})
+	}
+
+	var nextStr string
+	if next != nil {
+		nextStr = pagination.Encode(*next)
+	}
+
+	meta := getDeviceTelemetryMeta{
+		NextCursor: nextStr,
+		Limit:      limit,
+	}
+
+	WriteJSON(w, http.StatusOK, out, meta)
 }

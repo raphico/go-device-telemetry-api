@@ -3,6 +3,7 @@ package telemetry
 import (
 	"context"
 
+	"github.com/raphico/go-device-telemetry-api/internal/common/pagination"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
 )
 
@@ -29,4 +30,13 @@ func (s *Service) CreateTelemetry(
 	}
 
 	return telemetry, nil
+}
+
+func (s *Service) ListDeviceTelemetry(
+	ctx context.Context,
+	deviceID device.DeviceID,
+	limit int,
+	cursor *pagination.Cursor,
+) ([]*Telemetry, *pagination.Cursor, error) {
+	return s.repo.FindTelemetry(ctx, deviceID, limit, cursor)
 }

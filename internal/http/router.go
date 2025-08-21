@@ -45,6 +45,7 @@ func NewRouter(
 
 				r.Route("/{device_id}/telemetry", func(r chi.Router) {
 					r.Post("/", telemetryHandler.HandleCreateTelemetry)
+					r.Get("/", telemetryHandler.HandleGetDeviceTelemetry)
 				})
 			})
 		})

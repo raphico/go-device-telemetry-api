@@ -150,7 +150,7 @@ func (r *DeviceRepository) FindDevices(
 
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
-		return nil, nil, fmt.Errorf("query devices: %w", err)
+		return nil, nil, fmt.Errorf("failed to query devices: %w", err)
 	}
 	defer rows.Close()
 
@@ -178,7 +178,7 @@ func (r *DeviceRepository) FindDevices(
 			&createdAt,
 			&updatedAt,
 		); err != nil {
-			return nil, nil, fmt.Errorf("scan device: %w", err)
+			return nil, nil, fmt.Errorf("failed to scan device: %w", err)
 		}
 
 		dev, err := device.RehydrateDevice(
@@ -192,7 +192,7 @@ func (r *DeviceRepository) FindDevices(
 			updatedAt,
 		)
 		if err != nil {
-			return nil, nil, fmt.Errorf("rehydrate device: %w", err)
+			return nil, nil, fmt.Errorf("failed to rehydrate device: %w", err)
 		}
 
 		result = append(result, dev)
