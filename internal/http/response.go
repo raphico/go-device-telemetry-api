@@ -17,6 +17,11 @@ type responseEnvelope struct {
 	Error   *errorPayload `json:"error,omitempty"`
 }
 
+type pageMeta struct {
+	NextCursor string `json:"next_cursor,omitempty"`
+	Limit      int    `json:"limit"`
+}
+
 func WriteJSONError(w http.ResponseWriter, status int, code errorCode, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

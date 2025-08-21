@@ -45,14 +45,9 @@ func RehydrateTelemetry(
 		return nil, fmt.Errorf("corrupt telemetry type: %w", err)
 	}
 
-	var payload map[string]any
-	if payloadBytes == nil {
-		payload = make(map[string]any)
-	} else {
-		err := json.Unmarshal(payloadBytes, &payload)
-		if err != nil {
-			return nil, fmt.Errorf("corrupt payload: %w", err)
-		}
+	var payload Payload
+	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
+		return nil, fmt.Errorf("corrupt payload: %w", err)
 	}
 
 	r, err := RecordedAtFromTime(recordedAt)

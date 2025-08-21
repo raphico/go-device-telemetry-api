@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 
+	"github.com/raphico/go-device-telemetry-api/internal/common/pagination"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
 )
 
@@ -28,4 +29,13 @@ func (s *Service) CreateCommand(
 	}
 
 	return command, nil
+}
+
+func (s *Service) ListDeviceCommands(
+	ctx context.Context,
+	deviceID device.DeviceID,
+	limit int,
+	cursor *pagination.Cursor,
+) ([]*Command, *pagination.Cursor, error) {
+	return s.repo.FindCommands(ctx, deviceID, limit, cursor)
 }

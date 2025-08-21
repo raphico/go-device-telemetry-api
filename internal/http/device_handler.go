@@ -141,11 +141,6 @@ func (h *DeviceHandler) HandleGetDevice(w http.ResponseWriter, r *http.Request) 
 	WriteJSON(w, http.StatusOK, res, nil)
 }
 
-type listDevicesMeta struct {
-	NextCursor string `json:"next_cursor,omitempty"`
-	Limit      int    `json:"limit"`
-}
-
 func (h *DeviceHandler) HandleListDevices(w http.ResponseWriter, r *http.Request) {
 	userId, ok := GetUserID(r.Context())
 	if !ok {
@@ -197,7 +192,7 @@ func (h *DeviceHandler) HandleListDevices(w http.ResponseWriter, r *http.Request
 		nextStr = s
 	}
 
-	meta := listDevicesMeta{
+	meta := pageMeta{
 		NextCursor: nextStr,
 		Limit:      limit,
 	}

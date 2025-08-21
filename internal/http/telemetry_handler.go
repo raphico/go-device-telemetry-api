@@ -94,11 +94,6 @@ func (h *TelemetryHandler) HandleCreateTelemetry(w http.ResponseWriter, r *http.
 	WriteJSON(w, http.StatusCreated, res, nil)
 }
 
-type getDeviceTelemetryMeta struct {
-	NextCursor string `json:"next_cursor,omitempty"`
-	Limit      int    `json:"limit"`
-}
-
 func (h *TelemetryHandler) HandleGetDeviceTelemetry(w http.ResponseWriter, r *http.Request) {
 	deviceIDStr := chi.URLParam(r, "device_id")
 	deviceID, err := device.NewDeviceID(deviceIDStr)
@@ -149,7 +144,7 @@ func (h *TelemetryHandler) HandleGetDeviceTelemetry(w http.ResponseWriter, r *ht
 		nextStr = pagination.Encode(*next)
 	}
 
-	meta := getDeviceTelemetryMeta{
+	meta := pageMeta{
 		NextCursor: nextStr,
 		Limit:      limit,
 	}

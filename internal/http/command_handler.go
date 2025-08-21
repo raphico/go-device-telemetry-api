@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/raphico/go-device-telemetry-api/internal/common/pagination"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/command"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
 	"github.com/raphico/go-device-telemetry-api/internal/logger"
@@ -29,7 +31,7 @@ type createCommandRequest struct {
 	Payload     any    `json:"payload"`
 }
 
-type createCommandResponse struct {
+type commandResponse struct {
 	ID          string `json:"id"`
 	CommandName string `json:"command_name"`
 	Payload     any    `json:"payload"`
@@ -74,7 +76,7 @@ func (h *CommandHandler) HandleCreateCommand(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	res := createCommandResponse{
+	res := commandResponse{
 		ID:          c.ID.String(),
 		CommandName: c.Name.String(),
 		Payload:     c.Payload,
@@ -82,4 +84,62 @@ func (h *CommandHandler) HandleCreateCommand(w http.ResponseWriter, r *http.Requ
 	}
 
 	WriteJSON(w, http.StatusCreated, res, nil)
+}
+
+func (h *CommandHandler) HandleGetDeviceCommands(w http.ResponseWriter, r *http.Request) {
+	deviceIDStr := chi.URLParam(r, "device_id")
+	deviceID, err := device.NewDeviceID(deviceIDStr)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "invalid device id")
+		return
+	}
+
+	limit := pagination.DefaultLimit
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if v, err := strconv.Atoi(limitStr); err != nil || v < 0 {
+			WriteJSONError(w, http.StatusBadRequest, invalidRequest, "limit must be a positive integer")
+			return
+		} else {
+			limit = pagination.ClampLimit(v)
+		}
+	}
+
+	var cur *pagination.Cursor
+	if cstr := r.URL.Query().Get("cursor"); cstr != "" {
+		if decoded, err := pagination.Decode(cstr); err != nil {
+			WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+			return
+		} else {
+			cur = &decoded
+		}
+	}
+
+	commands, next, err := h.command.ListDeviceCommands(r.Context(), deviceID, limit, cur)
+	if err != nil {
+		h.log.Error(fmt.Sprintf("failed to get device commands: %v", err))
+		WriteInternalError(w)
+		return
+	}
+
+	out := make([]commandResponse, 0, len(commands))
+	for _, c := range commands {
+		out = append(out, commandResponse{
+			ID:          c.ID.String(),
+			CommandName: c.Name.String(),
+			Payload:     c.Payload,
+			Status:      c.Status.String(),
+		})
+	}
+
+	var nextStr string
+	if next != nil {
+		nextStr = pagination.Encode(*next)
+	}
+
+	meta := pageMeta{
+		NextCursor: nextStr,
+		Limit:      limit,
+	}
+
+	WriteJSON(w, http.StatusOK, out, meta)
 }
