@@ -15,6 +15,7 @@ func NewRouter(
 	authHandler *AuthHandler,
 	deviceHandler *DeviceHandler,
 	telemetryHandler *TelemetryHandler,
+	commandHandler *CommandHandler,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -46,6 +47,10 @@ func NewRouter(
 				r.Route("/{device_id}/telemetry", func(r chi.Router) {
 					r.Post("/", telemetryHandler.HandleCreateTelemetry)
 					r.Get("/", telemetryHandler.HandleGetDeviceTelemetry)
+				})
+
+				r.Route("/{device_id}/commands", func(r chi.Router) {
+					r.Post("/", commandHandler.HandleCreateCommand)
 				})
 			})
 		})

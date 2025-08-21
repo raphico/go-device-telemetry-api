@@ -94,15 +94,15 @@ Stores sensor readings from devices. Flexible using JSONB.
 
 Stores commands issued to devices with flexible payloads.
 
-| Column      | Type      | Notes                       |
-| ----------- | --------- | --------------------------- |
-| id          | UUID      | Primary Key                 |
-| device_id   | UUID      | Foreign Key → Devices(id)   |
-| command     | VARCHAR   | Command name                |
-| payload     | JSONB     | Flexible command arguments  |
-| status      | VARCHAR   | Pending / Executed / Failed |
-| created_at  | TIMESTAMP | Command issued time         |
-| executed_at | TIMESTAMP | When executed (nullable)    |
+| Column       | Type      | Notes                       |
+| ------------ | --------- | --------------------------- |
+| id           | UUID      | Primary Key                 |
+| device_id    | UUID      | Foreign Key → Devices(id)   |
+| command_name | VARCHAR   | Command name                |
+| payload      | JSONB     | Flexible command arguments  |
+| status       | VARCHAR   | pending / executed / failed |
+| created_at   | TIMESTAMP | Command issued time         |
+| executed_at  | TIMESTAMP | When executed (nullable)    |
 
 **Example:**
 
