@@ -69,7 +69,7 @@ func (r *DeviceRepository) FindById(
 ) (*device.Device, error) {
 	var (
 		deviceID   uuid.UUID
-		dbUserID     uuid.UUID
+		uID        uuid.UUID
 		name       string
 		deviceType string
 		status     string
@@ -84,7 +84,7 @@ func (r *DeviceRepository) FindById(
 		WHERE id = $1 AND user_id = $2
 	`
 
-	err := r.db.QueryRow(ctx, query, id, dbUserID).Scan(
+	err := r.db.QueryRow(ctx, query, id, uID).Scan(
 		&deviceID,
 		&userID,
 		&name,
@@ -104,8 +104,8 @@ func (r *DeviceRepository) FindById(
 	}
 
 	return device.RehydrateDevice(
-		device.DeviceID(deviceID),
-		user.UserID(userID),
+		deviceID,
+		uID,
 		name,
 		deviceType,
 		status,
@@ -182,8 +182,8 @@ func (r *DeviceRepository) FindDevices(
 		}
 
 		dev, err := device.RehydrateDevice(
-			device.DeviceID(deviceID),
-			user.UserID(uID),
+			deviceID,
+			uID,
 			name,
 			deviceType,
 			status,

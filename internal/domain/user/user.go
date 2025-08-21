@@ -3,6 +3,8 @@ package user
 import (
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type User struct {
@@ -23,7 +25,7 @@ func NewUser(email Email, username Username, password Password) *User {
 }
 
 func RehydrateUser(
-	id UserID,
+	id uuid.UUID,
 	emailStr string,
 	usernameStr string,
 	passwordHash []byte,
@@ -39,7 +41,7 @@ func RehydrateUser(
 	}
 
 	return &User{
-		ID:        id,
+		ID:        UserID(id),
 		Email:     e,
 		Username:  uname,
 		Password:  PasswordFromHash(passwordHash),

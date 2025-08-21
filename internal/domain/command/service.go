@@ -41,11 +41,11 @@ func (s *Service) ListDeviceCommands(
 }
 
 func (s *Service) UpdateCommandStatus(
-	ctx context.Context, 
+	ctx context.Context,
 	id CommandID,
 	deviceID device.DeviceID,
 	status Status,
-	executedAt ExecutedAt,	
+	executedAt ExecutedAt,
 ) (*Command, error) {
 	cmd, err := s.repo.FindById(ctx, id, deviceID)
 	if err != nil {

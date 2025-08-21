@@ -87,5 +87,5 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email user.Email) (*us
 		return nil, fmt.Errorf("failed to find user: %w", err)
 	}
 
-	return user.RehydrateUser(user.UserID(id), emailStr, usernameStr, passwordHash, createdAt, updatedAt)
+	return user.RehydrateUser(id, emailStr, usernameStr, passwordHash, createdAt, updatedAt)
 }

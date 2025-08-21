@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
 )
 
@@ -52,8 +53,8 @@ func (d *Device) UpdateMetadata(m map[string]any) {
 }
 
 func RehydrateDevice(
-	id DeviceID,
-	userID user.UserID,
+	id uuid.UUID,
+	userID uuid.UUID,
 	name string,
 	deviceType string,
 	status string,
@@ -87,8 +88,8 @@ func RehydrateDevice(
 	}
 
 	return &Device{
-		ID:         id,
-		UserID:     userID,
+		ID:         DeviceID(id),
+		UserID:     user.UserID(userID),
 		Name:       n,
 		Status:     s,
 		DeviceType: dt,

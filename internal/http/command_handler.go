@@ -154,10 +154,9 @@ func (h *CommandHandler) HandleGetDeviceCommands(w http.ResponseWriter, r *http.
 	WriteJSON(w, http.StatusOK, out, meta)
 }
 
-
 type updateCommandStatusRequest struct {
-	Status      string    `json:"status"`
-	ExecutedAt  string `json:"executed_at"`
+	Status     string `json:"status"`
+	ExecutedAt string `json:"executed_at"`
 }
 
 func (h *CommandHandler) HandleUpdateCommandStatus(w http.ResponseWriter, r *http.Request) {
@@ -175,7 +174,6 @@ func (h *CommandHandler) HandleUpdateCommandStatus(w http.ResponseWriter, r *htt
 		return
 	}
 
-
 	var req updateCommandStatusRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "Invalid request body")
@@ -187,7 +185,7 @@ func (h *CommandHandler) HandleUpdateCommandStatus(w http.ResponseWriter, r *htt
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
 		return
 	}
-	
+
 	executedAt, err := command.NewExecutedAt(req.ExecutedAt)
 	if err != nil {
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())

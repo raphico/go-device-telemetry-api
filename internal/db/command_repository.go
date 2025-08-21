@@ -150,7 +150,7 @@ func (r *CommandRepository) FindById(
 ) (*command.Command, error) {
 	var (
 		commandID   uuid.UUID
-		dbDeviceID    uuid.UUID
+		dbDeviceID  uuid.UUID
 		commandName string
 		payload     []byte
 		status      string
