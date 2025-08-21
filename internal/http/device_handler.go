@@ -156,7 +156,7 @@ func (h *DeviceHandler) HandleListDevices(w http.ResponseWriter, r *http.Request
 
 	limit := pagination.DefaultLimit
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		if v, err := strconv.Atoi(limitStr); err != nil {
+		if v, err := strconv.Atoi(limitStr); err != nil || v < 0 {
 			WriteJSONError(w, http.StatusBadRequest, invalidRequest, "limit must be a positive integer")
 			return
 		} else {

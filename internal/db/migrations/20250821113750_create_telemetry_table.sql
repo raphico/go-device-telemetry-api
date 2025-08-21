@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS telemetry (
     device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
     telemetry_type VARCHAR(50) NOT NULL,
     payload JSONB,
-    recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    recorded_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 -- +goose StatementEnd
 

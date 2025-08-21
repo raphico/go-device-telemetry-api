@@ -28,6 +28,7 @@ func NewTelemetryHandler(log *logger.Logger, telemetry *telemetry.Service) *Tele
 type createTelemetryRequest struct {
 	TelemetryType string `json:"telemetry_type"`
 	Payload       any    `json:"payload"`
+	RecordedAt    string `json:"recorded_at"`
 }
 
 type telemetryResponse struct {
@@ -63,7 +64,13 @@ func (h *TelemetryHandler) HandleCreateTelemetry(w http.ResponseWriter, r *http.
 		return
 	}
 
-	t, err := h.telemetry.CreateTelemetry(r.Context(), deviceID, telemetryType, payload)
+	recordedAt, err := telemetry.NewRecordedAt(req.RecordedAt)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+		return
+	}
+
+	t, err := h.telemetry.CreateTelemetry(r.Context(), deviceID, telemetryType, payload, recordedAt)
 	if err != nil {
 		switch {
 		case errors.Is(err, device.ErrDeviceNotFound):
@@ -79,7 +86,7 @@ func (h *TelemetryHandler) HandleCreateTelemetry(w http.ResponseWriter, r *http.
 		ID:            t.ID.String(),
 		TelemetryType: t.TelemetryType.String(),
 		Payload:       t.Payload,
-		RecordedAt:    t.RecordedAt.UTC(),
+		RecordedAt:    t.RecordedAt.Time(),
 	}
 
 	WriteJSON(w, http.StatusCreated, res, nil)

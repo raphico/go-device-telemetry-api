@@ -31,10 +31,10 @@ func (r *TelemetryRepository) Create(ctx context.Context, t *telemetry.Telemetry
 	query := `
 		INSERT INTO telemetry (device_id, telemetry_type, payload)	
 		VALUES ($1, $2, $3)
-		RETURNING id, recorded_at
+		RETURNING id, created_at
 	`
 
-	err = r.db.QueryRow(ctx, query, t.DeviceID, t.TelemetryType, jsonPayload).Scan(&t.ID, &t.RecordedAt)
+	err = r.db.QueryRow(ctx, query, t.DeviceID, t.TelemetryType, jsonPayload).Scan(&t.ID, &t.CreatedAt)
 
 	if err != nil {
 		var pgError *pgconn.PgError

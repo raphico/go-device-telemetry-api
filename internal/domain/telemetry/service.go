@@ -19,8 +19,9 @@ func (s *Service) CreateTelemetry(
 	deviceID device.DeviceID,
 	telemetryType TelemetryType,
 	payload Payload,
+	recordedAt RecordedAt,
 ) (*Telemetry, error) {
-	telemetry := NewTelemetry(deviceID, telemetryType, payload)
+	telemetry := NewTelemetry(deviceID, telemetryType, payload, recordedAt)
 
 	err := s.repo.Create(ctx, telemetry)
 	if err != nil {

@@ -11,17 +11,20 @@ type Telemetry struct {
 	DeviceID      device.DeviceID
 	TelemetryType TelemetryType
 	Payload       Payload
-	RecordedAt    time.Time
+	RecordedAt    RecordedAt
+	CreatedAt     time.Time
 }
 
 func NewTelemetry(
 	deviceId device.DeviceID,
 	telemetryType TelemetryType,
 	payload Payload,
+	recordedAt RecordedAt,
 ) *Telemetry {
 	return &Telemetry{
 		DeviceID:      deviceId,
 		TelemetryType: telemetryType,
 		Payload:       payload,
+		RecordedAt:    recordedAt,
 	}
 }
