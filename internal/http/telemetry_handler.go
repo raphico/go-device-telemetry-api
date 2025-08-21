@@ -1,0 +1,86 @@
+package http
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
+	"github.com/raphico/go-device-telemetry-api/internal/domain/telemetry"
+	"github.com/raphico/go-device-telemetry-api/internal/logger"
+)
+
+type TelemetryHandler struct {
+	log       *logger.Logger
+	telemetry *telemetry.Service
+}
+
+func NewTelemetryHandler(log *logger.Logger, telemetry *telemetry.Service) *TelemetryHandler {
+	return &TelemetryHandler{
+		log:       log,
+		telemetry: telemetry,
+	}
+}
+
+type createTelemetryRequest struct {
+	TelemetryType string `json:"telemetry_type"`
+	Payload       any    `json:"payload"`
+}
+
+type telemetryResponse struct {
+	ID            string         `json:"id"`
+	TelemetryType string         `json:"telemetry_type"`
+	Payload       map[string]any `json:"payload"`
+	RecordedAt    time.Time      `json:"recorded_at"`
+}
+
+func (h *TelemetryHandler) HandleCreateTelemetry(w http.ResponseWriter, r *http.Request) {
+	deviceIDStr := chi.URLParam(r, "device_id")
+	deviceID, err := device.NewDeviceID(deviceIDStr)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "invalid device id")
+		return
+	}
+
+	var req createTelemetryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "invalid request body")
+		return
+	}
+
+	telemetryType, err := telemetry.NewTelemetryType(req.TelemetryType)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+		return
+	}
+
+	payload, err := telemetry.NewPayload(req.Payload)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+		return
+	}
+
+	t, err := h.telemetry.CreateTelemetry(r.Context(), deviceID, telemetryType, payload)
+	if err != nil {
+		switch {
+		case errors.Is(err, device.ErrDeviceNotFound):
+			WriteJSONError(w, http.StatusNotFound, notfound, "device not found")
+		default:
+			h.log.Error(fmt.Sprintf("failed to add telemetry: %v", err))
+			WriteInternalError(w)
+		}
+		return
+	}
+
+	res := telemetryResponse{
+		ID:            t.ID.String(),
+		TelemetryType: t.TelemetryType.String(),
+		Payload:       t.Payload,
+		RecordedAt:    t.RecordedAt.UTC(),
+	}
+
+	WriteJSON(w, http.StatusCreated, res, nil)
+}

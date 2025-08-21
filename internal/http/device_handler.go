@@ -110,14 +110,14 @@ func (h *DeviceHandler) HandleGetDevice(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	idStr := chi.URLParam(r, "id")
-	id, err := device.NewDeviceID(idStr)
+	deviceIDStr := chi.URLParam(r, "device_id")
+	deviceID, err := device.NewDeviceID(deviceIDStr)
 	if err != nil {
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "invalid device id")
 		return
 	}
 
-	dev, err := h.device.GetDevice(r.Context(), id, userId)
+	dev, err := h.device.GetDevice(r.Context(), deviceID, userId)
 	if err != nil {
 		switch {
 		case errors.Is(err, device.ErrDeviceNotFound):
@@ -218,8 +218,8 @@ func (h *DeviceHandler) HandleUpdateDevice(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	idStr := chi.URLParam(r, "id")
-	id, err := device.NewDeviceID(idStr)
+	deviceIDStr := chi.URLParam(r, "device_id")
+	deviceID, err := device.NewDeviceID(deviceIDStr)
 	if err != nil {
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, "invalid device id")
 		return
@@ -259,7 +259,7 @@ func (h *DeviceHandler) HandleUpdateDevice(w http.ResponseWriter, r *http.Reques
 		update.Metadata = &req.Metadata
 	}
 
-	dev, err := h.device.UpdateDevice(r.Context(), id, userId, update)
+	dev, err := h.device.UpdateDevice(r.Context(), deviceID, userId, update)
 	if err != nil {
 		switch {
 		case errors.Is(err, device.ErrDeviceNotFound):

@@ -8,6 +8,7 @@ import (
 	"github.com/raphico/go-device-telemetry-api/internal/db"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/auth"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
+	"github.com/raphico/go-device-telemetry-api/internal/domain/telemetry"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/token"
 	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
 	transporthttp "github.com/raphico/go-device-telemetry-api/internal/http"
@@ -29,9 +30,13 @@ func BuildApp(log *logger.Logger, dbpool *pgxpool.Pool, cfg config.Config) http.
 	deviceService := device.NewService(deviceRepo)
 	deviceHandler := transporthttp.NewDeviceHandler(log, deviceService)
 
+	telemetryRepo := db.NewTelemetryRepository(dbpool)
+	telemetryService := telemetry.NewService(telemetryRepo)
+	telemetryHandler := transporthttp.NewTelemetryHandler(log, telemetryService)
+
 	userMiddleware := transporthttp.NewUserMiddleware(tokenService)
 
-	router := transporthttp.NewRouter(log, userMiddleware, authHandler, deviceHandler)
+	router := transporthttp.NewRouter(log, userMiddleware, authHandler, deviceHandler, telemetryHandler)
 
 	return router
 }

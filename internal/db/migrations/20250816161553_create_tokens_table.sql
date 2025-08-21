@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS tokens (
     revoked BOOLEAN DEFAULT FALSE,
     expires_at TIMESTAMPTZ(0) NOT NULL,
     last_used_at TIMESTAMPTZ(0),
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 -- +goose StatementEnd
 

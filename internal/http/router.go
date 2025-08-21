@@ -14,6 +14,7 @@ func NewRouter(
 	userMw *UserMiddleware,
 	authHandler *AuthHandler,
 	deviceHandler *DeviceHandler,
+	telemetryHandler *TelemetryHandler,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -39,8 +40,12 @@ func NewRouter(
 			r.Route("/devices", func(r chi.Router) {
 				r.Post("/", deviceHandler.HandleCreateDevice)
 				r.Get("/", deviceHandler.HandleListDevices)
-				r.Get("/{id}", deviceHandler.HandleGetDevice)
-				r.Post("/{id}", deviceHandler.HandleUpdateDevice)
+				r.Get("/{device_id}", deviceHandler.HandleGetDevice)
+				r.Post("/{device_id}", deviceHandler.HandleUpdateDevice)
+
+				r.Route("/{device_id}/telemetry", func(r chi.Router) {
+					r.Post("/", telemetryHandler.HandleCreateTelemetry)
+				})
 			})
 		})
 

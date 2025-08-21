@@ -70,8 +70,8 @@ Stores sensor readings from devices. Flexible using JSONB.
 | ----------- | --------- | ------------------------- |
 | id          | UUID      | Primary Key               |
 | device_id   | UUID      | Foreign Key → Devices(id) |
-| data_type   | VARCHAR   | E.g., environment, motion |
-| value       | JSONB     | Sensor readings, flexible |
+| type        | VARCHAR   | E.g., environment, motion |
+| payload     | JSONB     | Sensor readings, flexible |
 | recorded_at | TIMESTAMP | Timestamp of reading      |
 
 **Example:**

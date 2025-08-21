@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS devices (
     device_type VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL,
     metadata JSONB,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 -- +goose StatementEnd
 
