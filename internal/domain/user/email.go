@@ -1,6 +1,7 @@
 package user
 
 import (
+	"errors"
 	"net/mail"
 	"strings"
 )
@@ -12,14 +13,12 @@ type Email struct {
 func NewEmail(value string) (Email, error) {
 	value = strings.TrimSpace(value)
 
-	// Required
 	if value == "" {
-		return Email{}, ErrEmailRequired
+		return Email{}, errors.New("email is required")
 	}
 
-	// Validate format
 	if _, err := mail.ParseAddress(value); err != nil {
-		return Email{}, ErrEmailInvalid
+		return Email{}, errors.New("invalid email format")
 	}
 
 	return Email{value: value}, nil

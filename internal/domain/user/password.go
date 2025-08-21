@@ -1,6 +1,7 @@
 package user
 
 import (
+	"errors"
 	"fmt"
 	"unicode"
 
@@ -26,7 +27,7 @@ func (p *Password) Matches(candidate string) bool {
 
 func validatePassword(pw string) error {
 	if len(pw) == 0 {
-		return ErrPasswordRequired
+		return errors.New("password is required")
 	}
 
 	var (
@@ -48,10 +49,10 @@ func validatePassword(pw string) error {
 	}
 
 	if !hasMinLen {
-		return ErrPasswordTooShort
+		return errors.New("password must be at least 8 characters")
 	}
 	if !hasLetter || !hasDigit || !hasSpecial {
-		return ErrPasswordTooWeak
+		return errors.New("password must contain a mix of letters, numbers, and symbols")
 	}
 
 	return nil

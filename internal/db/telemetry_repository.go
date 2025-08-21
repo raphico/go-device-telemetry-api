@@ -29,7 +29,7 @@ func (r *TelemetryRepository) Create(ctx context.Context, t *telemetry.Telemetry
 	}
 
 	query := `
-		INSERT INTO telemetry (device_id, type, payload)	
+		INSERT INTO telemetry (device_id, telemetry_type, payload)	
 		VALUES ($1, $2, $3)
 		RETURNING id, recorded_at
 	`

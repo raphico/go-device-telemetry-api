@@ -27,10 +27,10 @@ func NewDeviceHandler(log *logger.Logger, deviceService *device.Service) *Device
 }
 
 type createDeviceRequest struct {
-	Name       string         `json:"name"`
-	DeviceType string         `json:"device_type"`
-	Status     string         `json:"status"`
-	Metadata   map[string]any `json:"metadata"`
+	Name       string `json:"name"`
+	DeviceType string `json:"device_type"`
+	Status     string `json:"status"`
+	Metadata   any    `json:"metadata"`
 }
 
 type deviceResponse struct {
@@ -53,6 +53,7 @@ func (h *DeviceHandler) HandleCreateDevice(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		h.log.Debug(fmt.Sprint("missing user id in context", "path", r.URL.Path))
 		WriteUnauthorizedError(w)
+		return
 	}
 
 	name, err := device.NewName(req.Name)
@@ -73,28 +74,28 @@ func (h *DeviceHandler) HandleCreateDevice(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if req.Metadata == nil {
-		req.Metadata = make(map[string]any)
+	metadata, err := device.NewMetadata(req.Metadata)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+		return
 	}
 
-	dev, err := h.device.CreateDevice(r.Context(), userId, name, status, deviceType, req.Metadata)
+	dev, err := h.device.CreateDevice(r.Context(), userId, name, status, deviceType, metadata)
 	if err != nil {
 		switch {
 		case errors.Is(err, user.ErrUserNotFound):
 			WriteJSONError(w, http.StatusUnauthorized, unauthorized, "User does not exist")
-			return
-
 		default:
 			h.log.Error(fmt.Sprint("failed to create device", "error", err))
 			WriteInternalError(w)
-			return
 		}
+		return
 	}
 
 	res := deviceResponse{
 		ID:         dev.ID.String(),
 		Name:       dev.Name.String(),
-		DeviceType: string(dev.DeviceType),
+		DeviceType: dev.DeviceType.String(),
 		Status:     string(dev.Status),
 		Metadata:   dev.Metadata,
 	}
@@ -132,7 +133,7 @@ func (h *DeviceHandler) HandleGetDevice(w http.ResponseWriter, r *http.Request) 
 	res := deviceResponse{
 		ID:         dev.ID.String(),
 		Name:       dev.Name.String(),
-		DeviceType: string(dev.DeviceType),
+		DeviceType: dev.DeviceType.String(),
 		Status:     string(dev.Status),
 		Metadata:   dev.Metadata,
 	}
@@ -184,7 +185,7 @@ func (h *DeviceHandler) HandleListDevices(w http.ResponseWriter, r *http.Request
 		out = append(out, deviceResponse{
 			ID:         d.ID.String(),
 			Name:       d.Name.String(),
-			DeviceType: string(d.DeviceType),
+			DeviceType: d.DeviceType.String(),
 			Status:     string(d.Status),
 			Metadata:   d.Metadata,
 		})
@@ -205,9 +206,9 @@ func (h *DeviceHandler) HandleListDevices(w http.ResponseWriter, r *http.Request
 }
 
 type updateDeviceRequest struct {
-	Name       string         `json:"name"`
-	DeviceType string         `json:"device_type"`
-	Metadata   map[string]any `json:"metadata"`
+	Name       string `json:"name"`
+	DeviceType string `json:"device_type"`
+	Metadata   any    `json:"metadata"`
 }
 
 func (h *DeviceHandler) HandleUpdateDevice(w http.ResponseWriter, r *http.Request) {
@@ -256,7 +257,12 @@ func (h *DeviceHandler) HandleUpdateDevice(w http.ResponseWriter, r *http.Reques
 	}
 
 	if req.Metadata != nil {
-		update.Metadata = &req.Metadata
+		m, err := device.NewMetadata(req.Metadata)
+		if err != nil {
+			WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+			return
+		}
+		update.Metadata = &m
 	}
 
 	dev, err := h.device.UpdateDevice(r.Context(), deviceID, userId, update)
@@ -274,7 +280,7 @@ func (h *DeviceHandler) HandleUpdateDevice(w http.ResponseWriter, r *http.Reques
 	res := deviceResponse{
 		ID:         dev.ID.String(),
 		Name:       dev.Name.String(),
-		DeviceType: string(dev.DeviceType),
+		DeviceType: dev.DeviceType.String(),
 		Status:     string(dev.Status),
 		Metadata:   dev.Metadata,
 	}

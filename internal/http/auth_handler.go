@@ -54,16 +54,19 @@ func (h *AuthHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 	username, err := user.NewUsername(req.Username)
 	if err != nil {
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+		return
 	}
 
 	email, err := user.NewEmail(req.Email)
 	if err != nil {
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+		return
 	}
 
 	password, err := user.NewPassword(req.Password)
 	if err != nil {
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+		return
 	}
 
 	u, err := h.auth.Register(r.Context(), username, email, password)
@@ -72,13 +75,11 @@ func (h *AuthHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 		case errors.Is(err, user.ErrEmailAlreadyExists),
 			errors.Is(err, user.ErrUsernameTaken):
 			WriteJSONError(w, http.StatusConflict, conflict, err.Error())
-			return
-
 		default:
 			h.log.Error(fmt.Sprintf("failed to register user: %v", err))
 			WriteInternalError(w)
-			return
 		}
+		return
 	}
 
 	res := registerUserResponse{
@@ -110,6 +111,7 @@ func (h *AuthHandler) HandleLoginUser(w http.ResponseWriter, r *http.Request) {
 	email, err := user.NewEmail(req.Email)
 	if err != nil {
 		WriteJSONError(w, http.StatusBadRequest, invalidRequest, err.Error())
+		return
 	}
 
 	accessToken, refreshToken, err := h.auth.Login(r.Context(), email, req.Password)
@@ -121,6 +123,7 @@ func (h *AuthHandler) HandleLoginUser(w http.ResponseWriter, r *http.Request) {
 
 		h.log.Error(fmt.Sprintf("failed to authenticate user: %v", err))
 		WriteInternalError(w)
+		return
 	}
 
 	cookie := &http.Cookie{

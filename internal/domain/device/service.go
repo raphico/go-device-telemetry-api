@@ -14,7 +14,7 @@ type Service struct {
 type UpdateDeviceInput struct {
 	Name       *Name
 	DeviceType *DeviceType
-	Metadata   *map[string]any
+	Metadata   *Metadata
 }
 
 func NewService(repo Repository) *Service {
@@ -29,7 +29,7 @@ func (s *Service) CreateDevice(
 	name Name,
 	status Status,
 	deviceType DeviceType,
-	metadata map[string]any,
+	metadata Metadata,
 ) (*Device, error) {
 	dev := NewDevice(userId, name, status, deviceType, metadata)
 
