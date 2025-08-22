@@ -11,8 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/raphico/go-device-telemetry-api/internal/common/pagination"
-	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
-	"github.com/raphico/go-device-telemetry-api/internal/domain/telemetry"
+	"github.com/raphico/go-device-telemetry-api/internal/device"
+	"github.com/raphico/go-device-telemetry-api/internal/telemetry"
 )
 
 type TelemetryRepository struct {

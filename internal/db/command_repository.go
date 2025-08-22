@@ -11,9 +11,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/raphico/go-device-telemetry-api/internal/command"
 	"github.com/raphico/go-device-telemetry-api/internal/common/pagination"
-	"github.com/raphico/go-device-telemetry-api/internal/domain/command"
-	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
+	"github.com/raphico/go-device-telemetry-api/internal/device"
 )
 
 type CommandRepository struct {

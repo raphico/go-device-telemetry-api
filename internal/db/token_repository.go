@@ -10,8 +10,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/raphico/go-device-telemetry-api/internal/domain/token"
-	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
+	"github.com/raphico/go-device-telemetry-api/internal/token"
+	"github.com/raphico/go-device-telemetry-api/internal/user"
 )
 
 type TokenRepository struct {

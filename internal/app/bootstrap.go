@@ -4,16 +4,16 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/raphico/go-device-telemetry-api/internal/auth"
+	"github.com/raphico/go-device-telemetry-api/internal/command"
 	"github.com/raphico/go-device-telemetry-api/internal/config"
 	"github.com/raphico/go-device-telemetry-api/internal/db"
-	"github.com/raphico/go-device-telemetry-api/internal/domain/auth"
-	"github.com/raphico/go-device-telemetry-api/internal/domain/command"
-	"github.com/raphico/go-device-telemetry-api/internal/domain/device"
-	"github.com/raphico/go-device-telemetry-api/internal/domain/telemetry"
-	"github.com/raphico/go-device-telemetry-api/internal/domain/token"
-	"github.com/raphico/go-device-telemetry-api/internal/domain/user"
-	transporthttp "github.com/raphico/go-device-telemetry-api/internal/http"
+	"github.com/raphico/go-device-telemetry-api/internal/device"
 	"github.com/raphico/go-device-telemetry-api/internal/logger"
+	"github.com/raphico/go-device-telemetry-api/internal/telemetry"
+	"github.com/raphico/go-device-telemetry-api/internal/token"
+	transporthttp "github.com/raphico/go-device-telemetry-api/internal/transport/http"
+	"github.com/raphico/go-device-telemetry-api/internal/user"
 )
 
 func BuildApp(log *logger.Logger, dbpool *pgxpool.Pool, cfg config.Config) http.Handler {

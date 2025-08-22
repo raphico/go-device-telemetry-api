@@ -1,0 +1,24 @@
+package command
+
+import (
+	"context"
+
+	"github.com/raphico/go-device-telemetry-api/internal/common/pagination"
+	"github.com/raphico/go-device-telemetry-api/internal/device"
+)
+
+type Repository interface {
+	Create(ctx context.Context, c *Command) error
+	FindCommands(
+		ctx context.Context,
+		deviceID device.DeviceID,
+		limit int,
+		cursor *pagination.Cursor,
+	) ([]*Command, *pagination.Cursor, error)
+	FindById(
+		ctx context.Context,
+		id CommandID,
+		deviceID device.DeviceID,
+	) (*Command, error)
+	UpdateStatus(ctx context.Context, c *Command) error
+}
