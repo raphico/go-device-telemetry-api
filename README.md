@@ -46,6 +46,14 @@ export JWT_SECRET=$(openssl rand -base64 32)
 go run cmd/api/main.go
 ```
 
+## Future improvements
+
+1. Unit & Integration testing
+2. Continuous Deployment
+3. WebSocket endpoint for real-time telemetry streaming
+4. MQTT broker integration (devices publish telemetry → backend ingests)
+5. OTA firmware update endpoint
+
 ## License
 
 Licensed under the MIT License. Check the [LICENSE](./LICENSE) file for details.
