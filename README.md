@@ -1,12 +1,13 @@
 # Go Device Telemetry API
 
-A backend service built with **Go** for managing IoT devices, collecting telemetry data, and sending remote commands. Includes authentication, CRUD operations, and CI setup.
+A backend service built with **Go** for managing IoT devices, collecting telemetry data, sending remote commands, tracking command execution, and providing secure, paginated access for clients. Includes authentication, CRUD operations, and CI setup.
 
 ## Documentation
 
 - [Project Motivation](./docs/motivation.md)
 - [Database Design](./docs/database.md)
 - [API Documentation](./docs/api.md)
+- [System Design](./docs/system-design.md)
 
 ## Features
 
